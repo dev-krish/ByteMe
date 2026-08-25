@@ -16,7 +16,7 @@
 2. **Divyanshu Jha**
 3. **Karan Ray**
 4. **Krishnendu Dutta**
-5. **Mahek**
+5. **Mahek Walia**
 6. **Priyansi Das**
 
 ---
