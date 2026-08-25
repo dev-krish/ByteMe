@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+
+<html class="h-full" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>NLAMS - GIS Map</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&amp;family=JetBrains+Mono:wght@400;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "surface-variant": "#eee8d5",
+                        "glass-surface": "rgba(238, 232, 213, 0.85)",
+                        "glass-border": "rgba(147, 161, 161, 0.3)",
+                        "on-secondary-container": "#586e75",
+                        "on-primary": "#fdf6e3",
+                        "surface": "#eee8d5",
+                        "on-tertiary-fixed-variant": "#586e75",
+                        "error": "#dc322f",
+                        "on-background": "#657b83",
+                        "surface-dim": "#eee8d5",
+                        "tertiary-container": "#eee8d5",
+                        "primary-fixed": "#268bd2",
+                        "secondary": "#93a1a1",
+                        "on-secondary-fixed": "#0b1c30",
+                        "on-surface-variant": "#586e75",
+                        "secondary-container": "#eee8d5",
+                        "tertiary-fixed-dim": "#c1c7cf",
+                        "statutory-blue": "#268bd2",
+                        "outline-variant": "#93a1a1",
+                        "on-tertiary": "#fdf6e3",
+                        "on-primary-container": "#93bcfc",
+                        "surface-bright": "#fdf6e3",
+                        "surface-container-high": "#eee8d5",
+                        "on-tertiary-fixed": "#161c22",
+                        "red-flag": "#dc322f",
+                        "tertiary-fixed": "#dde3eb",
+                        "on-primary-fixed-variant": "#144780",
+                        "on-secondary": "#fdf6e3",
+                        "primary": "#268bd2",
+                        "background": "#fdf6e3",
+                        "secondary-fixed-dim": "#b7c8e1",
+                        "inverse-primary": "#a6c8ff",
+                        "primary-container": "#268bd2",
+                        "surface-container": "#eee8d5",
+                        "inverse-on-surface": "#eff1f3",
+                        "on-primary-fixed": "#001c3b",
+                        "surface-container-low": "#fdf6e3",
+                        "on-secondary-fixed-variant": "#38485d",
+                        "secondary-fixed": "#d3e4fe",
+                        "on-error": "#ffffff",
+                        "warning-amber": "#b58900",
+                        "inverse-surface": "#2d3133",
+                        "surface-tint": "#268bd2",
+                        "surface-container-lowest": "#fdf6e3",
+                        "surface-container-highest": "#eee8d5",
+                        "on-surface": "#657b83",
+                        "heading": "#586e75",
+                        "outline": "#93a1a1",
+                        "success-green": "#859900",
+                        "on-tertiary-container": "#b5bbc3",
+                        "primary-fixed-dim": "#a6c8ff",
+                        "error-container": "#ffdad6",
+                        "on-error-container": "#dc322f",
+                        "tertiary": "#2e353b"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "margin-page": "40px",
+                        "container-max": "1440px",
+                        "sidebar-width": "280px",
+                        "unit": "4px",
+                        "gutter-md": "24px"
+                    },
+                    "fontFamily": {
+                        "headline-md": ["Inter"],
+                        "label-caps": ["JetBrains Mono"],
+                        "body-md": ["Inter"],
+                        "body-lg": ["Inter"],
+                        "data-mono": ["JetBrains Mono"],
+                        "headline-xl": ["Inter"],
+                        "body-sm": ["Inter"],
+                        "headline-lg": ["Inter"]
+                    },
+                    "fontSize": {
+                        "headline-md": ["24px", { "lineHeight": "32px", "fontWeight": "600" }],
+                        "label-caps": ["12px", { "lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "600" }],
+                        "body-md": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+                        "body-lg": ["18px", { "lineHeight": "28px", "fontWeight": "400" }],
+                        "data-mono": ["13px", { "lineHeight": "18px", "fontWeight": "400" }],
+                        "headline-xl": ["40px", { "lineHeight": "48px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+                        "body-sm": ["14px", { "lineHeight": "20px", "fontWeight": "400" }],
+                        "headline-lg": ["32px", { "lineHeight": "40px", "letterSpacing": "-0.01em", "fontWeight": "600" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .fill-icon {
+            font-variation-settings: 'FILL' 1;
+        }
+        /* Custom scrollbar for webkit */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(0, 0, 0, 0.1);
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(0, 0, 0, 0.2);
+        }
+    </style>
+</head>
+<body class="bg-background text-on-background font-body-md h-full overflow-hidden flex flex-col md:flex-row">
+<!-- TopNavBar (Mobile Only) -->
+<nav class="md:hidden fixed top-0 left-0 w-full z-50 flex justify-between items-center px-margin-page py-4 bg-glass-surface dark:bg-tertiary-container/70 text-statutory-blue dark:text-primary-fixed backdrop-blur-xl border-glass-border shadow-sm">
+<div class="font-headline-lg text-heading font-bold">NLAMS</div>
+<div class="flex gap-4">
+<button class="hover:text-primary dark:hover:text-primary-fixed-dim transition-colors"><span class="material-symbols-outlined">notifications</span></button>
+<button class="hover:text-primary dark:hover:text-primary-fixed-dim transition-colors"><span class="material-symbols-outlined">settings</span></button>
+</div>
+</nav>
+<!-- SideNavBar (Desktop Only) -->
+<nav class="hidden md:flex fixed left-0 top-0 h-full w-[280px] z-40 flex-col pt-24 pb-8 px-4 bg-glass-surface dark:bg-tertiary-container/80 text-statutory-blue dark:text-primary-fixed backdrop-blur-2xl border-r border-glass-border shadow-lg">
+<div class="mb-8 px-4">
+<h1 class="font-headline-md text-heading font-bold">NLAMS</h1>
+<p class="font-body-md text-body-md opacity-80">Gov of India</p>
+</div>
+<div class="flex-1 space-y-2">
+<a class="text-on-surface-variant dark:text-surface-variant px-4 py-3 flex items-center gap-3 hover:bg-surface-container-high dark:hover:bg-tertiary-fixed-variant rounded-lg transition-all" href="#">
+<span class="material-symbols-outlined">account_tree</span>
+<span class="font-label-caps text-label-caps">Workflow</span>
+</a>
+<a class="bg-secondary-container dark:bg-secondary text-statutory-blue dark:text-on-secondary rounded-lg px-4 py-3 flex items-center gap-3 scale-95 duration-100" href="#">
+<span class="material-symbols-outlined fill-icon">map</span>
+<span class="font-label-caps text-label-caps">GIS Map</span>
+</a>
+<a class="text-on-surface-variant dark:text-surface-variant px-4 py-3 flex items-center gap-3 hover:bg-surface-container-high dark:hover:bg-tertiary-fixed-variant rounded-lg transition-all" href="#">
+<span class="material-symbols-outlined">payments</span>
+<span class="font-label-caps text-label-caps">Compensation</span>
+</a>
+<a class="text-on-surface-variant dark:text-surface-variant px-4 py-3 flex items-center gap-3 hover:bg-surface-container-high dark:hover:bg-tertiary-fixed-variant rounded-lg transition-all" href="#">
+<span class="material-symbols-outlined">home_work</span>
+<span class="font-label-caps text-label-caps">R&amp;R</span>
+</a>
+</div>
+<div class="mt-auto pt-8 border-t border-glass-border space-y-2">
+<button class="w-full bg-statutory-blue text-on-primary font-label-caps text-label-caps py-3 rounded-lg shadow-sm hover:opacity-90 transition-opacity mb-4">
+                New Acquisition
+            </button>
+<a class="text-on-surface-variant dark:text-surface-variant px-4 py-3 flex items-center gap-3 hover:bg-surface-container-high rounded-lg transition-all" href="#">
+<span class="material-symbols-outlined">help</span>
+<span class="font-label-caps text-label-caps">Help</span>
+</a>
+<a class="text-on-surface-variant dark:text-surface-variant px-4 py-3 flex items-center gap-3 hover:bg-surface-container-high rounded-lg transition-all" href="#">
+<span class="material-symbols-outlined">logout</span>
+<span class="font-label-caps text-label-caps">Logout</span>
+</a>
+</div>
+</nav>
+<!-- Main Content Canvas -->
+<main class="flex-1 relative w-full h-full md:pl-[280px] pt-[72px] md:pt-0">
+<!-- GIS Map Background Layer -->
+<div class="absolute inset-0 z-0 bg-surface-container" data-alt="A highly detailed, professional web-mapping satellite interface showing a rural landscape in India, featuring geometric agricultural land parcels intersected by a prominent, highlighted infrastructure corridor route. The style is modern, data-dense, and utilitarian with a light-mode mapbox aesthetic." style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuDaCmADLPs2ScX_E9KIjQxUGXBAjeK_fhesDJLXN7QvguMvNxUml2C4GtYmN0sPgIYrSVJAs0cghZ3Bi0Vl7BQ3xhjGlZHzL_fJk6vqkpCOheXrSBq-TLBe2H6NNXu4HXdvC9uITjTkiHgsbTR7R_V2W9hgOSTvILdFNSd-_twONpHeLFtd-xvSgVLEu4TZUGLZsJSWiXsBk-0H81NMwyTDtyzC6DQGElDmDNfg7SFq8IorlyyhV0a7uQ')">
+<!-- Simulated interactive map canvas -->
+<div class="w-full h-full relative">
+<!-- Highlighted Infrastructure Corridor SVG Overlay simulation -->
+<svg class="absolute inset-0 w-full h-full pointer-events-none" preserveaspectratio="none" viewbox="0 0 1000 1000">
+<!-- Cadastral boundaries -->
+<path d="M200 300 L400 350 L350 500 L150 450 Z" fill="rgba(38, 139, 210, 0.1)" stroke="rgba(38, 139, 210, 0.5)" stroke-width="1"></path>
+<path class="animate-pulse" d="M400 350 L600 300 L650 450 L450 550 L350 500 Z" fill="rgba(220, 38, 38, 0.1)" stroke="rgba(220, 38, 38, 0.6)" stroke-width="2"></path>
+<path d="M600 300 L800 250 L850 400 L650 450 Z" fill="rgba(38, 139, 210, 0.1)" stroke="rgba(38, 139, 210, 0.5)" stroke-width="1"></path>
+<!-- Proposed Corridor -->
+<path class="opacity-70" d="M100 700 Q 400 600, 500 400 T 900 100" fill="none" stroke="rgba(38, 139, 210, 0.8)" stroke-dasharray="20, 10" stroke-width="12"></path>
+<path d="M100 700 Q 400 600, 500 400 T 900 100" fill="none" stroke="rgba(255, 255, 255, 0.9)" stroke-width="4"></path>
+</svg>
+</div>
+</div>
+<!-- Floating UI Overlays -->
+<div class="absolute inset-0 z-10 pointer-events-none p-gutter-md flex flex-col justify-between">
+<!-- Top Search Bar & Map Controls -->
+<div class="flex justify-between items-start">
+<!-- Search Bar -->
+<div class="pointer-events-auto bg-glass-surface backdrop-blur-[20px] border border-glass-border rounded-lg shadow-lg w-full max-w-md p-2 flex items-center gap-2">
+<span class="material-symbols-outlined text-outline px-2">search</span>
+<input class="w-full bg-transparent border-none focus:ring-0 font-body-sm text-body-sm text-on-surface placeholder:text-outline-variant p-1" placeholder="Search Survey/Khasra No..." type="text"/>
+<button class="bg-statutory-blue text-on-primary rounded p-1.5 hover:bg-primary transition-colors flex items-center justify-center">
+<span class="material-symbols-outlined" style="font-size: 18px;">arrow_forward</span>
+</button>
+</div>
+<!-- Map View Controls -->
+<div class="pointer-events-auto flex flex-col gap-2">
+<div class="bg-glass-surface backdrop-blur-[20px] border border-glass-border rounded-lg shadow-lg overflow-hidden flex flex-col">
+<button class="p-3 hover:bg-surface-variant/50 transition-colors border-b border-glass-border flex items-center justify-center text-statutory-blue" title="Zoom In">
+<span class="material-symbols-outlined">add</span>
+</button>
+<button class="p-3 hover:bg-surface-variant/50 transition-colors flex items-center justify-center text-statutory-blue" title="Zoom Out">
+<span class="material-symbols-outlined">remove</span>
+</button>
+</div>
+<button class="pointer-events-auto bg-glass-surface backdrop-blur-[20px] border border-glass-border rounded-lg shadow-lg p-3 hover:bg-surface-variant/50 transition-colors flex items-center justify-center text-statutory-blue mt-2" title="Layers">
+<span class="material-symbols-outlined">layers</span>
+</button>
+</div>
+</div>
+<!-- Side Panel: Parcel Details (Right Side) -->
+<div class="pointer-events-auto self-end h-full max-h-[calc(100vh-140px)] w-full max-w-[360px] flex flex-col gap-4 overflow-y-auto pb-4">
+<!-- Main Parcel Detail Card -->
+<div class="bg-glass-surface backdrop-blur-[20px] border border-glass-border rounded-xl shadow-[0_20px_25px_-5px_rgba(0,0,0,0.1)] p-6 flex flex-col gap-4 border-l-4 border-l-statutory-blue">
+<div class="flex justify-between items-start">
+<div>
+<h2 class="font-headline-md text-heading font-semibold">Parcel #45A/2</h2>
+<p class="font-label-caps text-label-caps text-on-surface-variant mt-1">VILLAGE: RAMPUR, TEHSIL: JALGAON</p>
+</div>
+<span class="bg-secondary-container text-statutory-blue font-label-caps text-[10px] px-2 py-1 rounded">SELECTED</span>
+</div>
+<div class="grid grid-cols-2 gap-4 mt-2">
+<div class="flex flex-col">
+<span class="font-label-caps text-label-caps text-outline mb-1">AREA (SQ.M)</span>
+<span class="font-data-mono text-data-mono text-on-surface">12,450.00</span>
+</div>
+<div class="flex flex-col">
+<span class="font-label-caps text-label-caps text-outline mb-1">LAND TYPE</span>
+<span class="font-body-sm text-body-sm text-on-surface">Agricultural (Irrigated)</span>
+</div>
+<div class="flex flex-col col-span-2">
+<span class="font-label-caps text-label-caps text-outline mb-1">PRIMARY OWNER</span>
+<span class="font-body-sm text-body-sm text-on-surface font-medium">Shri. Ramesh Kumar Sharma</span>
+</div>
+</div>
+<div class="mt-4 pt-4 border-t border-glass-border">
+<span class="font-label-caps text-label-caps text-outline mb-2 block">ENCUMBRANCE STATUS</span>
+<div class="flex items-center gap-2 bg-error-container text-on-error-container px-3 py-2 rounded-md border border-error/20">
+<span class="material-symbols-outlined text-error" style="font-size: 16px;">warning</span>
+<span class="font-body-sm text-body-sm font-medium">Bank Mortgage Active (SBI)</span>
+</div>
+</div>
+</div>
+<!-- Compensation Summary Mini-Card -->
+<div class="bg-glass-surface backdrop-blur-[20px] border border-glass-border rounded-xl shadow-lg p-6 flex flex-col gap-3">
+<div class="flex items-center gap-2 mb-2">
+<span class="material-symbols-outlined text-statutory-blue">account_balance_wallet</span>
+<h3 class="font-label-caps text-label-caps font-bold text-statutory-blue">COMPENSATION ESTIMATE</h3>
+</div>
+<div class="flex justify-between items-end border-b border-glass-border pb-3">
+<span class="font-body-sm text-body-sm text-on-surface-variant">Base Land Value</span>
+<span class="font-data-mono text-data-mono font-medium text-on-surface">₹ 45,20,000</span>
+</div>
+<div class="flex justify-between items-end border-b border-glass-border pb-3">
+<span class="font-body-sm text-body-sm text-on-surface-variant">Solatium (100%)</span>
+<span class="font-data-mono text-data-mono font-medium text-on-surface">₹ 45,20,000</span>
+</div>
+<div class="flex justify-between items-end border-b border-glass-border pb-3">
+<span class="font-body-sm text-body-sm text-on-surface-variant">Assets/Structures</span>
+<span class="font-data-mono text-data-mono font-medium text-on-surface">₹ 2,15,000</span>
+</div>
+<div class="flex justify-between items-end pt-2">
+<span class="font-body-sm text-body-sm font-bold text-heading">TOTAL AWARD</span>
+<span class="font-data-mono text-data-mono text-lg font-bold text-statutory-blue">₹ 92,55,000</span>
+</div>
+<button class="mt-4 w-full bg-surface-variant text-statutory-blue font-label-caps text-label-caps py-2 rounded border border-outline-variant hover:bg-surface-container-high transition-colors">
+                        VIEW DETAILED CALCULATION
+                    </button>
+</div>
+<!-- GIS Analysis / Intersects -->
+<div class="bg-glass-surface backdrop-blur-[20px] border border-glass-border rounded-xl shadow-lg p-4">
+<span class="font-label-caps text-label-caps text-outline mb-2 block">GIS LOGIC: ST_INTERSECTS</span>
+<p class="font-body-sm text-body-sm text-on-surface-variant">
+                        Parcel intersects Proposed NH-44 Alignment. 85% of total area falls within the Right of Way (RoW) acquisition boundary.
+                    </p>
+</div>
+</div>
+</div>
+</main>
+</body></html>

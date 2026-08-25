@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>NLAMS - Workflow Module</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&amp;family=JetBrains+Mono:wght@400;600&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "surface-variant": "#d3cbb8",
+                        "glass-surface": "rgba(238, 232, 213, 0.7)",
+                        "glass-border": "rgba(238, 232, 213, 0.4)",
+                        "on-secondary-container": "#586e75",
+                        "on-primary": "#fdf6e3",
+                        "surface": "#fdf6e3",
+                        "on-tertiary-fixed-variant": "#586e75",
+                        "error": "#dc322f",
+                        "on-background": "#657b83",
+                        "surface-dim": "#eee8d5",
+                        "tertiary-container": "#eee8d5",
+                        "primary-fixed": "#268bd2",
+                        "secondary": "#2aa198",
+                        "on-secondary-fixed": "#073642",
+                        "on-surface-variant": "#93a1a1",
+                        "secondary-container": "#eee8d5",
+                        "tertiary-fixed-dim": "#d3cbb8",
+                        "statutory-blue": "#268bd2",
+                        "outline-variant": "#93a1a1",
+                        "on-tertiary": "#fdf6e3",
+                        "on-primary-container": "#268bd2",
+                        "surface-bright": "#fdf6e3",
+                        "surface-container-high": "#eee8d5",
+                        "on-tertiary-fixed": "#073642",
+                        "red-flag": "#dc322f",
+                        "tertiary-fixed": "#eee8d5",
+                        "on-primary-fixed-variant": "#268bd2",
+                        "on-secondary": "#fdf6e3",
+                        "primary": "#268bd2",
+                        "background": "#fdf6e3",
+                        "secondary-fixed-dim": "#eee8d5",
+                        "inverse-primary": "#2aa198",
+                        "primary-container": "#268bd2",
+                        "surface-container": "#eee8d5",
+                        "inverse-on-surface": "#eee8d5",
+                        "on-primary-fixed": "#073642",
+                        "surface-container-low": "#eee8d5",
+                        "on-secondary-fixed-variant": "#586e75",
+                        "secondary-fixed": "#eee8d5",
+                        "on-error": "#fdf6e3",
+                        "warning-amber": "#b58900",
+                        "inverse-surface": "#073642",
+                        "surface-tint": "#268bd2",
+                        "surface-container-lowest": "#fdf6e3",
+                        "surface-container-highest": "#e8e2d0",
+                        "on-surface": "#657b83",
+                        "outline": "#93a1a1",
+                        "success-green": "#859900",
+                        "on-tertiary-container": "#93a1a1",
+                        "primary-fixed-dim": "#268bd2",
+                        "error-container": "#fdf6e3",
+                        "on-error-container": "#dc322f",
+                        "tertiary": "#eee8d5",
+                        "heading": "#586e75"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "margin-page": "40px",
+                        "container-max": "1440px",
+                        "sidebar-width": "280px",
+                        "unit": "4px",
+                        "gutter-md": "24px"
+                    },
+                    "fontFamily": {
+                        "headline-md": ["Inter"],
+                        "label-caps": ["JetBrains Mono"],
+                        "body-md": ["Inter"],
+                        "body-lg": ["Inter"],
+                        "data-mono": ["JetBrains Mono"],
+                        "headline-xl": ["Inter"],
+                        "body-sm": ["Inter"],
+                        "headline-lg": ["Inter"]
+                    },
+                    "fontSize": {
+                        "headline-md": ["24px", { "lineHeight": "32px", "fontWeight": "600" }],
+                        "label-caps": ["12px", { "lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "600" }],
+                        "body-md": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+                        "body-lg": ["18px", { "lineHeight": "28px", "fontWeight": "400" }],
+                        "data-mono": ["13px", { "lineHeight": "18px", "fontWeight": "400" }],
+                        "headline-xl": ["40px", { "lineHeight": "48px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+                        "body-sm": ["14px", { "lineHeight": "20px", "fontWeight": "400" }],
+                        "headline-lg": ["32px", { "lineHeight": "40px", "letterSpacing": "-0.01em", "fontWeight": "600" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        .glass-card {
+            background: rgba(238, 232, 213, 0.7);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(238, 232, 213, 0.4);
+        }
+    </style>
+</head>
+<body class="bg-background text-on-surface font-body-md h-screen overflow-hidden flex">
+<!-- SideNavBar Component -->
+<aside class="fixed left-0 top-0 h-full w-[280px] z-40 flex flex-col pt-24 pb-8 px-4 bg-glass-surface dark:bg-tertiary-container/80 backdrop-blur-2xl border-r border-glass-border shadow-lg docked left-0 h-full w-sidebar-width">
+<div class="absolute top-8 left-4 right-4 flex items-center gap-3 px-4">
+<div class="w-10 h-10 rounded bg-statutory-blue flex items-center justify-center text-on-primary font-headline-md">
+                NL
+            </div>
+<div>
+<h1 class="font-headline-md text-headline-md font-bold text-heading dark:text-primary-fixed">NLAMS</h1>
+<p class="font-label-caps text-label-caps text-on-surface-variant">Gov of India</p>
+</div>
+</div>
+<nav class="flex-1 flex flex-col gap-2 mt-8">
+<a class="bg-secondary-container dark:bg-secondary text-heading dark:text-on-secondary rounded-lg px-4 py-3 flex items-center gap-3 scale-95 duration-100 hover:bg-surface-container-high dark:hover:bg-tertiary-fixed-variant transition-all" href="#">
+<span class="material-symbols-outlined" data-weight="fill" style="font-variation-settings: 'FILL' 1;">account_tree</span>
+<span class="font-label-caps text-label-caps">Workflow</span>
+</a>
+<a class="text-on-surface-variant dark:text-surface-variant px-4 py-3 flex items-center gap-3 hover:bg-surface-container-high dark:hover:bg-tertiary-fixed-variant rounded-lg transition-all" href="#">
+<span class="material-symbols-outlined">map</span>
+<span class="font-label-caps text-label-caps">GIS Map</span>
+</a>
+<a class="text-on-surface-variant dark:text-surface-variant px-4 py-3 flex items-center gap-3 hover:bg-surface-container-high dark:hover:bg-tertiary-fixed-variant rounded-lg transition-all" href="#">
+<span class="material-symbols-outlined">payments</span>
+<span class="font-label-caps text-label-caps">Compensation</span>
+</a>
+<a class="text-on-surface-variant dark:text-surface-variant px-4 py-3 flex items-center gap-3 hover:bg-surface-container-high dark:hover:bg-tertiary-fixed-variant rounded-lg transition-all" href="#">
+<span class="material-symbols-outlined">home_work</span>
+<span class="font-label-caps text-label-caps">R&amp;R</span>
+</a>
+</nav>
+<button class="w-full bg-statutory-blue text-on-primary rounded-lg py-3 px-4 flex items-center justify-center gap-2 font-label-caps text-label-caps mb-8 shadow-sm hover:opacity-90 transition-opacity">
+<span class="material-symbols-outlined">add</span>
+            New Acquisition
+        </button>
+<div class="flex flex-col gap-2 border-t border-glass-border pt-4">
+<a class="text-on-surface-variant dark:text-surface-variant px-4 py-2 flex items-center gap-3 hover:bg-surface-container-high dark:hover:bg-tertiary-fixed-variant rounded-lg transition-all" href="#">
+<span class="material-symbols-outlined">help</span>
+<span class="font-label-caps text-label-caps">Help</span>
+</a>
+<a class="text-on-surface-variant dark:text-surface-variant px-4 py-2 flex items-center gap-3 hover:bg-surface-container-high dark:hover:bg-tertiary-fixed-variant rounded-lg transition-all" href="#">
+<span class="material-symbols-outlined">logout</span>
+<span class="font-label-caps text-label-caps">Logout</span>
+</a>
+</div>
+</aside>
+<!-- Main Content Canvas -->
+<main class="flex-1 ml-[280px] overflow-y-auto bg-background relative">
+<!-- Ambient Background Effect -->
+<div class="fixed inset-0 pointer-events-none opacity-20">
+<div class="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] rounded-full bg-statutory-blue/10 blur-3xl"></div>
+<div class="absolute bottom-[-10%] right-[-10%] w-[30%] h-[30%] rounded-full bg-statutory-blue/5 blur-3xl"></div>
+</div>
+<div class="relative z-10 p-margin-page max-w-container-max mx-auto flex flex-col gap-gutter-md">
+<!-- Page Header -->
+<header class="flex justify-between items-end border-b border-glass-border pb-6">
+<div>
+<h2 class="font-headline-xl text-headline-xl text-heading mb-2">Case Overview</h2>
+<p class="font-data-mono text-data-mono text-on-surface-variant flex items-center gap-2">
+<span class="material-symbols-outlined text-[16px]">folder_open</span>
+                        Case ID: DL-2024-001
+                    </p>
+</div>
+<div class="flex gap-4 items-center">
+<div class="glass-card px-4 py-2 rounded-full flex items-center gap-2">
+<div class="w-2 h-2 rounded-full bg-success-green"></div>
+<span class="font-label-caps text-label-caps text-on-surface">Active Phase: Section 4</span>
+</div>
+</div>
+</header>
+<!-- Grid Layout -->
+<div class="grid grid-cols-12 gap-gutter-md">
+<!-- Left Column: Lifecycle Timeline -->
+<div class="col-span-4 flex flex-col gap-6">
+<div class="glass-card rounded-xl p-[32px] h-full shadow-sm">
+<h3 class="font-headline-md text-headline-md text-heading mb-8">RFCTLARR-2013 Lifecycle</h3>
+<div class="relative pl-6 border-l-2 border-surface-variant flex flex-col gap-8">
+<!-- Proposal -->
+<div class="relative">
+<div class="absolute -left-[35px] w-6 h-6 rounded-full bg-success-green flex items-center justify-center border-4 border-background">
+<span class="material-symbols-outlined text-background text-[12px]" data-weight="fill" style="font-variation-settings: 'FILL' 1;">check</span>
+</div>
+<h4 class="font-label-caps text-label-caps text-on-surface mb-1">Proposal Initiated</h4>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Completed on Oct 12, 2023</p>
+</div>
+<!-- SIA -->
+<div class="relative">
+<div class="absolute -left-[35px] w-6 h-6 rounded-full bg-success-green flex items-center justify-center border-4 border-background">
+<span class="material-symbols-outlined text-background text-[12px]" data-weight="fill" style="font-variation-settings: 'FILL' 1;">check</span>
+</div>
+<h4 class="font-label-caps text-label-caps text-on-surface mb-1">SIA &amp; Public Hearing</h4>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Completed on Dec 05, 2023</p>
+</div>
+<!-- Section 4 -->
+<div class="relative">
+<div class="absolute -left-[35px] w-6 h-6 rounded-full bg-statutory-blue flex items-center justify-center border-4 border-background shadow-[0_0_10px_rgba(38,139,210,0.5)]">
+<div class="w-2 h-2 bg-background rounded-full"></div>
+</div>
+<h4 class="font-label-caps text-label-caps text-statutory-blue mb-2">Section 4 Notification</h4>
+<div class="bg-surface-container rounded p-3 mb-2">
+<p class="font-body-sm text-body-sm text-on-surface-variant mb-2">Pending final approval from competent authority.</p>
+<div class="flex items-center gap-2 text-warning-amber">
+<span class="material-symbols-outlined text-[16px]">timer</span>
+<span class="font-data-mono text-data-mono">12 Days Remaining</span>
+</div>
+</div>
+</div>
+<!-- Section 19 -->
+<div class="relative opacity-50">
+<div class="absolute -left-[35px] w-6 h-6 rounded-full bg-surface-variant border-4 border-background"></div>
+<h4 class="font-label-caps text-label-caps text-on-surface mb-1">Section 19 Declaration</h4>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Pending</p>
+</div>
+<!-- Award -->
+<div class="relative opacity-50">
+<div class="absolute -left-[35px] w-6 h-6 rounded-full bg-surface-variant border-4 border-background"></div>
+<h4 class="font-label-caps text-label-caps text-on-surface mb-1">Award Calculation</h4>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Pending</p>
+</div>
+<!-- DBT -->
+<div class="relative opacity-50">
+<div class="absolute -left-[35px] w-6 h-6 rounded-full bg-surface-variant border-4 border-background"></div>
+<h4 class="font-label-caps text-label-caps text-on-surface mb-1">DBT Disbursement</h4>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Pending</p>
+</div>
+<!-- Possession -->
+<div class="relative opacity-50">
+<div class="absolute -left-[35px] w-6 h-6 rounded-full bg-surface-variant border-4 border-background"></div>
+<h4 class="font-label-caps text-label-caps text-on-surface mb-1">Physical Possession</h4>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Pending</p>
+</div>
+</div>
+</div>
+</div>
+<!-- Right Column: Details & Actions -->
+<div class="col-span-8 flex flex-col gap-gutter-md">
+<!-- Top Action Panel (Glassmorphic) -->
+<div class="glass-card rounded-xl p-[32px] shadow-lg flex justify-between items-center relative overflow-hidden">
+<!-- Red Flag Glow Effect (Subtle indicating urgency if SLA is near, though not breached yet) -->
+<div class="absolute inset-0 bg-gradient-to-r from-transparent via-transparent to-warning-amber/5 pointer-events-none"></div>
+<div>
+<h3 class="font-headline-md text-headline-md text-heading mb-1">Section 4 Preliminary Notification</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Review the generated draft notification for publication.</p>
+</div>
+<div class="flex gap-3 relative z-10">
+<button class="glass-card text-statutory-blue font-label-caps text-label-caps px-6 py-3 rounded-lg hover:bg-surface-variant/50 transition-colors flex items-center gap-2">
+<span class="material-symbols-outlined text-[18px]">undo</span>
+                                Return
+                            </button>
+<button class="bg-red-flag text-on-primary font-label-caps text-label-caps px-6 py-3 rounded-lg hover:bg-red-flag/90 transition-colors shadow-md flex items-center gap-2">
+<span class="material-symbols-outlined text-[18px]">flag</span>
+                                Flag Issue
+                            </button>
+<button class="bg-statutory-blue text-on-primary font-label-caps text-label-caps px-6 py-3 rounded-lg hover:bg-statutory-blue/90 transition-colors shadow-md flex items-center gap-2">
+<span class="material-symbols-outlined text-[18px]">check_circle</span>
+                                Approve
+                            </button>
+</div>
+</div>
+<!-- Document Viewer Stub -->
+<div class="glass-card rounded-xl shadow-sm flex-1 flex flex-col overflow-hidden min-h-[500px]">
+<div class="px-[32px] py-4 border-b border-glass-border flex justify-between items-center bg-surface-container/50">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-statutory-blue">description</span>
+<span class="font-label-caps text-label-caps text-statutory-blue">Notification_Draft_v2.pdf</span>
+</div>
+<div class="flex gap-2">
+<button class="p-2 hover:bg-surface-variant rounded text-on-surface-variant transition-colors"><span class="material-symbols-outlined text-[20px]">zoom_in</span></button>
+<button class="p-2 hover:bg-surface-variant rounded text-on-surface-variant transition-colors"><span class="material-symbols-outlined text-[20px]">zoom_out</span></button>
+<button class="p-2 hover:bg-surface-variant rounded text-on-surface-variant transition-colors"><span class="material-symbols-outlined text-[20px]">download</span></button>
+</div>
+</div>
+<!-- Document Content Area using State Machine Logic Stub -->
+<div class="flex-1 p-[32px] bg-background overflow-y-auto">
+<!-- In a real implementation, this would render the document. Using the requested stub. -->
+                            {{DATA:DOCUMENT:DOCUMENT_1}}
+                        </div>
+</div>
+</div>
+</div>
+</div>
+</main>
+</body></html>
