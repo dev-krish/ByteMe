@@ -166,21 +166,56 @@ flowchart TD
 
 # 💻 LOCAL INSTALLATION & WORKING PROTOTYPE
 
+This project is divided into a **Frontend (Next.js)** (at the root) and a **Backend (Node.js/Express + Prisma)** in the `backend/` directory.
+
+### 1. Clone the repository
 ```bash
-# 1. Clone the repository
 git clone https://github.com/divyanshuj91/ByteMe.git
 cd ByteMe
+```
 
-# 2. Install dependencies
+### 2. Backend Setup
+Open a terminal and navigate to the backend directory:
+```bash
+cd backend
+
+# Install dependencies
 npm install
 
-# 3. Start local development server
+# Set up environment variables (ensure .env is configured)
+cp .env.example .env
+
+# Generate Prisma Client (Required for types and DB connection)
+npx prisma generate
+# Optional: sync schema to your database
+# npx prisma db push
+
+# Start the backend development server
 npm run dev
+```
 
-# 4. Open in browser
-http://localhost:3000
+### 3. Frontend Setup
+Open a new terminal at the root of the project (`ByteMe/`):
+```bash
+# Install frontend dependencies
+npm install
 
-# 5. Build for production verification
+# Start local frontend development server
+npm run dev
+```
+
+### 4. Open in browser
+- **Frontend App**: `http://localhost:3000`
+
+### 5. Build for production verification
+```bash
+# Backend
+cd backend
+npm run build
+npm start
+
+# Frontend
+cd ..
 npm run build
 npm run start
 ```
