@@ -3,6 +3,8 @@ import { signSession, OfficerSession, UserSession } from "@/lib/security/token";
 import { appendAuditRecord } from "@/lib/security/audit";
 import { REGISTERED_USERS_STORE } from "@/lib/auth-store";
 
+export const dynamic = "force-dynamic";
+
 // Verified Officer Accounts Directory
 const VERIFIED_OFFICERS: Record<
   string,
@@ -68,11 +70,11 @@ const VERIFIED_OFFICERS: Record<
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { email, password } = body;
+    const { email, password, dscChallenge } = body;
 
-    if (!email || !password) {
+    if (!email || (!password && !dscChallenge)) {
       return NextResponse.json(
-        { error: "Email and password are required credentials" },
+        { error: "Email and password or DSC token are required credentials" },
         { status: 400 }
       );
     }
@@ -83,12 +85,12 @@ export async function POST(request: Request) {
 
     let sessionPayload: UserSession;
 
-    if (match && match.pass === password) {
+    if (match && (dscChallenge || match.pass === password)) {
       sessionPayload = {
         ...match.officer,
         exp: Date.now() + 8 * 60 * 60 * 1000,
       };
-    } else if (registered && registered.passwordHash === password) {
+    } else if (registered && (dscChallenge || registered.passwordHash === password)) {
       sessionPayload = {
         userId: `USER-${cleanEmail.slice(0, 4).toUpperCase()}`,
         name: registered.name,

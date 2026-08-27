@@ -74,7 +74,7 @@ export async function loginCitizen(input: CitizenLoginRequest): Promise<LoginRes
 
   // If no user exists, create a default citizen user in DB
   if (!user) {
-    const passwordHash = await bcrypt.hash("nlams2026", 12);
+    const passwordHash = await bcrypt.hash(Math.random().toString(36), 12);
     user = await prisma.user.create({
       data: {
         name: "Rameshwar Prasad Meena",

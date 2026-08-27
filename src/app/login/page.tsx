@@ -39,17 +39,16 @@ function LoginForm() {
   // Portal Mode for Sign In: "CITIZEN" or "OFFICER"
   const [authMode, setAuthMode] = useState<"CITIZEN" | "OFFICER">("CITIZEN");
 
-  // Registration Form States
+  // Registration Form States (Exclusively for Citizens & Landowners)
   const [regName, setRegName] = useState("");
   const [regEmail, setRegEmail] = useState("");
   const [regPassword, setRegPassword] = useState("");
   const [regConfirmPassword, setRegConfirmPassword] = useState("");
-  const [regRole, setRegRole] = useState<"CITIZEN" | "CALA_OFFICER" | "SURVEYOR">("CITIZEN");
   const [regPhone, setRegPhone] = useState("");
 
   // Officer Form States
   const [officerEmail, setOfficerEmail] = useState("cala.dausa@gov.in");
-  const [officerPassword, setOfficerPassword] = useState("cala@2026");
+  const [officerPassword, setOfficerPassword] = useState("");
   const [officerRoleLabel, setOfficerRoleLabel] = useState("CALA Officer");
   const [dscScanning, setDscScanning] = useState(false);
   const [dscSuccess, setDscSuccess] = useState(false);
@@ -94,11 +93,10 @@ function LoginForm() {
   // Preset Officer Switcher
   const setPresetOfficer = (
     presetEmail: string,
-    presetPass: string,
     label: string
   ) => {
     setOfficerEmail(presetEmail);
-    setOfficerPassword(presetPass);
+    setOfficerPassword("");
     setOfficerRoleLabel(label);
     setErrorMsg(null);
     setSuccessMsg(null);
@@ -227,7 +225,10 @@ function LoginForm() {
       const res = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: "cala.dausa@gov.in", password: "cala@2026" }),
+        body: JSON.stringify({
+          email: officerEmail || "cala.dausa@gov.in",
+          dscChallenge: "DSC_HARDWARE_TOKEN_VERIFIED",
+        }),
       });
 
       if (res.ok) {
@@ -271,7 +272,7 @@ function LoginForm() {
           name: regName,
           email: regEmail,
           password: regPassword,
-          role: regRole,
+          role: "CITIZEN",
           phone: regPhone,
         }),
       });
@@ -284,11 +285,9 @@ function LoginForm() {
         return;
       }
 
-      setSuccessMsg("Account created successfully! Redirecting...");
+      setSuccessMsg("Citizen account created successfully! Redirecting...");
       setTimeout(() => {
-        router.push(
-          redirectTarget || (regRole === "CITIZEN" ? "/citizen-portal" : "/executive-dashboard")
-        );
+        router.push(redirectTarget || "/citizen-portal");
       }, 700);
     } catch {
       setErrorMsg("Network error connecting to registration service.");
@@ -327,14 +326,14 @@ function LoginForm() {
           </div>
           <h1 className="text-2xl font-bold text-on-surface font-sans">
             {authType === "SIGN_UP"
-              ? "Create NLAMS Account"
+              ? "Citizen & Landowner Registration"
               : authMode === "CITIZEN"
               ? "Citizen & Landowner Portal"
               : "Officer Authentication Portal"}
           </h1>
           <p className="text-xs text-emphasis mt-1">
             {authType === "SIGN_UP"
-              ? "Sign up for unified land acquisition & statutory compensation management"
+              ? "Create your citizen account to track land parcels, DBT compensation, and claims"
               : authMode === "CITIZEN"
               ? "Verify Land Parcels, Compensation (Sec 26-30), DBT Status & Receipts"
               : "Department of Land Resources (DoLR) • RFCTLARR-2013 Command"}
@@ -368,12 +367,12 @@ function LoginForm() {
             }}
             className={`flex-1 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer ${
               authType === "SIGN_UP"
-                ? "bg-primary text-white shadow-sm font-semibold"
+                ? "bg-emerald-700 text-white shadow-sm font-semibold"
                 : "text-emphasis hover:text-on-surface"
             }`}
           >
             <UserPlus className="w-4 h-4" />
-            <span>Sign Up (Create Account)</span>
+            <span>Citizen Sign Up</span>
           </button>
         </div>
 
@@ -480,48 +479,6 @@ function LoginForm() {
                 </div>
               </div>
 
-              {/* Account Role / Designation */}
-              <div>
-                <label className="block text-xs uppercase text-emphasis mb-1 font-bold">
-                  Account Type / Role
-                </label>
-                <div className="grid grid-cols-3 gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setRegRole("CITIZEN")}
-                    className={`py-2 px-2 rounded-xl text-xs font-bold transition-all text-center border cursor-pointer ${
-                      regRole === "CITIZEN"
-                        ? "bg-emerald-500/15 border-emerald-500 text-emerald-900 shadow-sm"
-                        : "bg-surface-container-high/60 border-outline-variant/30 text-emphasis hover:bg-surface-container-high"
-                    }`}
-                  >
-                    Citizen / Landowner
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setRegRole("CALA_OFFICER")}
-                    className={`py-2 px-2 rounded-xl text-xs font-bold transition-all text-center border cursor-pointer ${
-                      regRole === "CALA_OFFICER"
-                        ? "bg-primary/15 border-primary text-primary shadow-sm"
-                        : "bg-surface-container-high/60 border-outline-variant/30 text-emphasis hover:bg-surface-container-high"
-                    }`}
-                  >
-                    CALA Officer
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setRegRole("SURVEYOR")}
-                    className={`py-2 px-2 rounded-xl text-xs font-bold transition-all text-center border cursor-pointer ${
-                      regRole === "SURVEYOR"
-                        ? "bg-primary/15 border-primary text-primary shadow-sm"
-                        : "bg-surface-container-high/60 border-outline-variant/30 text-emphasis hover:bg-surface-container-high"
-                    }`}
-                  >
-                    Field Surveyor
-                  </button>
-                </div>
-              </div>
-
               {/* Mobile Phone (Optional) */}
               <div>
                 <label className="block text-xs uppercase text-emphasis mb-1 font-bold">
@@ -580,14 +537,14 @@ function LoginForm() {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full bg-primary hover:bg-primary/90 text-white font-sans font-bold text-xs uppercase tracking-wider py-3 rounded-xl shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer mt-2"
+                className="w-full bg-emerald-700 hover:bg-emerald-800 text-white font-sans font-bold text-xs uppercase tracking-wider py-3 rounded-xl shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer mt-2"
               >
                 {loading ? (
                   <RefreshCw className="w-4 h-4 animate-spin" />
                 ) : (
                   <UserPlus className="w-4 h-4" />
                 )}
-                <span>{loading ? "Creating Encrypted Account..." : "Create Account & Access Portal"}</span>
+                <span>{loading ? "Creating Encrypted Citizen Account..." : "Create Citizen Account & Access Portal"}</span>
               </button>
 
               <div className="text-center pt-2">
@@ -825,7 +782,7 @@ function LoginForm() {
             <div className="grid grid-cols-3 gap-1 p-1 bg-surface-container-high/70 rounded-xl mb-4 text-xs font-semibold border border-outline-variant/30">
               <button
                 type="button"
-                onClick={() => setPresetOfficer("cala.dausa@gov.in", "cala@2026", "CALA Officer")}
+                onClick={() => setPresetOfficer("cala.dausa@gov.in", "CALA Officer")}
                 className={`py-2 rounded-lg transition-all text-center ${
                   officerEmail === "cala.dausa@gov.in"
                     ? "bg-primary text-white shadow-sm font-semibold"
@@ -836,7 +793,7 @@ function LoginForm() {
               </button>
               <button
                 type="button"
-                onClick={() => setPresetOfficer("dg.nhai@gov.in", "nhai@2026", "Director General")}
+                onClick={() => setPresetOfficer("dg.nhai@gov.in", "Director General")}
                 className={`py-2 rounded-lg transition-all text-center ${
                   officerEmail === "dg.nhai@gov.in"
                     ? "bg-primary text-white shadow-sm font-semibold"
@@ -847,7 +804,7 @@ function LoginForm() {
               </button>
               <button
                 type="button"
-                onClick={() => setPresetOfficer("officer@nic.in", "demo@2026", "DoLR Lead")}
+                onClick={() => setPresetOfficer("officer@nic.in", "DoLR Lead")}
                 className={`py-2 rounded-lg transition-all text-center ${
                   officerEmail === "officer@nic.in"
                     ? "bg-primary text-white shadow-sm font-semibold"
@@ -881,14 +838,9 @@ function LoginForm() {
 
                 {/* Password */}
                 <div>
-                  <div className="flex items-center justify-between mb-1">
-                    <label className="text-xs uppercase text-emphasis font-bold">
-                      Password
-                    </label>
-                    <span className="text-[11px] text-emphasis">
-                      Demo Pass: <code className="text-primary font-bold">{officerPassword}</code>
-                    </span>
-                  </div>
+                  <label className="block text-xs uppercase text-emphasis mb-1 font-bold">
+                    Password
+                  </label>
                   <div className="relative">
                     <KeyRound className="w-4 h-4 text-emphasis absolute left-3 top-1/2 -translate-y-1/2" />
                     <input

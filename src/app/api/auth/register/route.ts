@@ -3,6 +3,8 @@ import { signSession, UserSession } from "@/lib/security/token";
 import { appendAuditRecord } from "@/lib/security/audit";
 import { REGISTERED_USERS_STORE } from "@/lib/auth-store";
 
+export const dynamic = "force-dynamic";
+
 export async function POST(request: Request) {
   try {
     const body = await request.json();
