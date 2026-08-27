@@ -73,29 +73,33 @@ const VERIFIED_CITIZENS: CitizenRecord[] = [
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { citizenId, aadhaarOrPhone, otp } = body;
+    const { citizenId, aadhaarOrPhone, email, identifier, otp, channel } = body;
+    const searchId = identifier || email || aadhaarOrPhone;
 
     let citizen: CitizenRecord | undefined;
 
     if (citizenId) {
       citizen = VERIFIED_CITIZENS.find((c) => c.id === citizenId);
-    } else if (aadhaarOrPhone) {
-      const clean = String(aadhaarOrPhone).replace(/[\s-]/g, "");
+    } else if (searchId) {
+      const clean = String(searchId).replace(/[\s-]/g, "").toLowerCase();
+      const isEmail = searchId.includes("@");
+
       citizen = VERIFIED_CITIZENS.find(
         (c) =>
+          c.email.toLowerCase() === searchId.toLowerCase() ||
           c.aadhaarLast4 === clean.slice(-4) ||
           c.phone === clean ||
           clean.includes(c.aadhaarLast4)
       );
 
-      // If user typed a custom phone/aadhaar not in presets, create a dynamically matched citizen record for smooth demo
+      // If user typed a custom email/phone/aadhaar not in presets, create a dynamically matched citizen record for smooth demo
       if (!citizen) {
         citizen = {
-          id: `CITIZEN-${clean.slice(-4)}`,
-          name: "Landowner Citizen",
-          email: `citizen.${clean.slice(-4)}@gov.in`,
-          phone: clean.length === 10 ? clean : "9829012345",
-          aadhaarLast4: clean.slice(-4) || "9999",
+          id: `CITIZEN-${clean.slice(-4) || "USER"}`,
+          name: isEmail ? searchId.split("@")[0].replace(/[._]/g, " ").replace(/\b\w/g, (l: string) => l.toUpperCase()) : "Landowner Citizen",
+          email: isEmail ? searchId.toLowerCase() : `citizen.${clean.slice(-4)}@gov.in`,
+          phone: !isEmail && clean.length === 10 ? clean : "9829012345",
+          aadhaarLast4: !isEmail ? (clean.slice(-4) || "9999") : "4291",
           khasraNo: "Plot 104/A",
           village: "Ramgarh",
           tehsil: "Dausa",

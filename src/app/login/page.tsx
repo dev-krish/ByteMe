@@ -22,6 +22,8 @@ import {
   Landmark,
   UserCheck,
   CheckCircle2,
+  Mail,
+  Fingerprint,
 } from "lucide-react";
 
 function LoginForm() {
@@ -41,7 +43,9 @@ function LoginForm() {
   const [dscSuccess, setDscSuccess] = useState(false);
 
   // Citizen Form States
+  const [citizenAuthChannel, setCitizenAuthChannel] = useState<"AADHAAR" | "EMAIL">("AADHAAR");
   const [aadhaarOrPhone, setAadhaarOrPhone] = useState("XXXX-XXXX-4291");
+  const [citizenEmail, setCitizenEmail] = useState("rameshwar.meena@citizen.gov.in");
   const [citizenName, setCitizenName] = useState("Rameshwar Prasad Meena");
   const [citizenKhasra, setCitizenKhasra] = useState("Plot 42A, Ramgarh (Dausa)");
   const [otpStep, setOtpStep] = useState<"INPUT" | "OTP_SENT">("INPUT");
@@ -66,10 +70,12 @@ function LoginForm() {
   const setPresetCitizen = (
     name: string,
     aadhaar: string,
+    email: string,
     khasra: string
   ) => {
     setCitizenName(name);
     setAadhaarOrPhone(aadhaar);
+    setCitizenEmail(email);
     setCitizenKhasra(khasra);
     setOtpStep("INPUT");
     setOtpValue("");
@@ -93,8 +99,14 @@ function LoginForm() {
   // 1. Citizen Send OTP
   const handleSendOtp = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
-    if (!aadhaarOrPhone) {
-      setErrorMsg("Please enter your Aadhaar or Mobile Number.");
+    const identifier = citizenAuthChannel === "EMAIL" ? citizenEmail : aadhaarOrPhone;
+    
+    if (!identifier) {
+      setErrorMsg(
+        citizenAuthChannel === "EMAIL"
+          ? "Please enter your Registered Email Address."
+          : "Please enter your Aadhaar or Mobile Number."
+      );
       return;
     }
 
@@ -106,12 +118,16 @@ function LoginForm() {
       const res = await fetch("/api/auth/otp", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "send", identifier: aadhaarOrPhone }),
+        body: JSON.stringify({
+          action: "send",
+          identifier,
+          channel: citizenAuthChannel.toLowerCase(),
+        }),
       });
 
       const data = await res.json();
       if (!res.ok) {
-        setErrorMsg(data.error || "Failed to generate OTP.");
+        setErrorMsg(data.error || "Failed to generate verification code.");
         setOtpSending(false);
         return;
       }
@@ -120,9 +136,17 @@ function LoginForm() {
       setOtpSending(false);
       setOtpCountdown(60);
       setOtpValue("123456"); // Pre-fill demo OTP for one-click testing
-      setSuccessMsg("UIDAI OTP sent! Demo code: 123456 pre-filled.");
+      setSuccessMsg(
+        citizenAuthChannel === "EMAIL"
+          ? "Email verification code sent! Demo code: 123456 pre-filled."
+          : "UIDAI Aadhaar OTP sent! Demo code: 123456 pre-filled."
+      );
     } catch {
-      setErrorMsg("Network error contacting UIDAI Aadhaar gateway.");
+      setErrorMsg(
+        citizenAuthChannel === "EMAIL"
+          ? "Network error contacting Email Verification service."
+          : "Network error contacting UIDAI Aadhaar gateway."
+      );
       setOtpSending(false);
     }
   };
@@ -133,6 +157,8 @@ function LoginForm() {
     setLoading(true);
     setErrorMsg(null);
 
+    const identifier = citizenAuthChannel === "EMAIL" ? citizenEmail : aadhaarOrPhone;
+
     try {
       // First verify OTP
       const otpRes = await fetch("/api/auth/otp", {
@@ -140,14 +166,15 @@ function LoginForm() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           action: "verify",
-          identifier: aadhaarOrPhone,
+          identifier,
           otp: otpValue,
+          channel: citizenAuthChannel.toLowerCase(),
         }),
       });
 
       const otpData = await otpRes.json();
       if (!otpRes.ok) {
-        setErrorMsg(otpData.error || "Invalid OTP code.");
+        setErrorMsg(otpData.error || "Invalid verification code.");
         setLoading(false);
         return;
       }
@@ -156,7 +183,13 @@ function LoginForm() {
       const res = await fetch("/api/auth/citizen-login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ aadhaarOrPhone, otp: otpValue }),
+        body: JSON.stringify({
+          identifier,
+          aadhaarOrPhone,
+          email: citizenEmail,
+          channel: citizenAuthChannel,
+          otp: otpValue,
+        }),
       });
 
       const data = await res.json();
@@ -352,6 +385,7 @@ function LoginForm() {
                     setPresetCitizen(
                       "Rameshwar Prasad Meena",
                       "XXXX-XXXX-4291",
+                      "rameshwar.meena@citizen.gov.in",
                       "Plot 42A, Ramgarh (Dausa)"
                     )
                   }
@@ -374,6 +408,7 @@ function LoginForm() {
                     setPresetCitizen(
                       "Smt. Sunita Devi",
                       "XXXX-XXXX-8820",
+                      "sunita.devi@citizen.gov.in",
                       "Khasra 108/2, Ramgarh"
                     )
                   }
@@ -396,6 +431,7 @@ function LoginForm() {
                     setPresetCitizen(
                       "Vikram Rathore",
                       "XXXX-XXXX-5512",
+                      "vikram.rathore@citizen.gov.in",
                       "Khasra 89/1, Sawai Madhopur"
                     )
                   }
@@ -416,6 +452,51 @@ function LoginForm() {
 
             {/* Glassmorphic Login Box */}
             <div className="glass-card rounded-2xl p-6 md:p-8 shadow-xl border border-outline-variant/40">
+              {/* Dual-Channel Mode Selector */}
+              <div className="mb-4">
+                <div className="text-[11px] font-bold text-emphasis uppercase tracking-wider mb-1.5">
+                  Verification Channel
+                </div>
+                <div className="grid grid-cols-2 gap-1.5 p-1 bg-surface-container rounded-xl border border-outline-variant/40">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setCitizenAuthChannel("AADHAAR");
+                      setOtpStep("INPUT");
+                      setOtpValue("");
+                      setErrorMsg(null);
+                      setSuccessMsg(null);
+                    }}
+                    className={`py-2 px-3 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                      citizenAuthChannel === "AADHAAR"
+                        ? "bg-emerald-700 text-white shadow-sm"
+                        : "text-emphasis hover:text-on-surface"
+                    }`}
+                  >
+                    <Fingerprint className="w-3.5 h-3.5" />
+                    <span>Aadhaar / Mobile OTP</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setCitizenAuthChannel("EMAIL");
+                      setOtpStep("INPUT");
+                      setOtpValue("");
+                      setErrorMsg(null);
+                      setSuccessMsg(null);
+                    }}
+                    className={`py-2 px-3 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                      citizenAuthChannel === "EMAIL"
+                        ? "bg-emerald-700 text-white shadow-sm"
+                        : "text-emphasis hover:text-on-surface"
+                    }`}
+                  >
+                    <Mail className="w-3.5 h-3.5" />
+                    <span>Email Verification</span>
+                  </button>
+                </div>
+              </div>
+
               <form onSubmit={handleCitizenLogin} className="space-y-4">
                 {/* Landowner Name & Assigned Parcel Card */}
                 <div className="p-3 bg-surface-container/60 rounded-xl border border-outline-variant/30 text-xs">
@@ -429,23 +510,42 @@ function LoginForm() {
                   </div>
                 </div>
 
-                {/* Aadhaar or Mobile input */}
-                <div>
-                  <label className="block text-xs uppercase text-emphasis mb-1 font-bold">
-                    Aadhaar Number / Registered Mobile
-                  </label>
-                  <div className="relative">
-                    <CreditCard className="w-4 h-4 text-emphasis absolute left-3 top-1/2 -translate-y-1/2" />
-                    <input
-                      type="text"
-                      required
-                      value={aadhaarOrPhone}
-                      onChange={(e) => setAadhaarOrPhone(e.target.value)}
-                      className="solarized-input w-full pl-9 pr-3 py-2.5 rounded-xl text-xs font-mono font-bold"
-                      placeholder="12-digit Aadhaar / 10-digit Mobile"
-                    />
+                {/* Channel-Specific Input */}
+                {citizenAuthChannel === "AADHAAR" ? (
+                  <div>
+                    <label className="block text-xs uppercase text-emphasis mb-1 font-bold">
+                      Aadhaar Number / Registered Mobile
+                    </label>
+                    <div className="relative">
+                      <CreditCard className="w-4 h-4 text-emphasis absolute left-3 top-1/2 -translate-y-1/2" />
+                      <input
+                        type="text"
+                        required
+                        value={aadhaarOrPhone}
+                        onChange={(e) => setAadhaarOrPhone(e.target.value)}
+                        className="solarized-input w-full pl-9 pr-3 py-2.5 rounded-xl text-xs font-mono font-bold"
+                        placeholder="12-digit Aadhaar / 10-digit Mobile"
+                      />
+                    </div>
                   </div>
-                </div>
+                ) : (
+                  <div>
+                    <label className="block text-xs uppercase text-emphasis mb-1 font-bold">
+                      Registered Email Address
+                    </label>
+                    <div className="relative">
+                      <Mail className="w-4 h-4 text-emphasis absolute left-3 top-1/2 -translate-y-1/2" />
+                      <input
+                        type="email"
+                        required
+                        value={citizenEmail}
+                        onChange={(e) => setCitizenEmail(e.target.value)}
+                        className="solarized-input w-full pl-9 pr-3 py-2.5 rounded-xl text-xs font-mono font-bold"
+                        placeholder="e.g. rameshwar.meena@citizen.gov.in"
+                      />
+                    </div>
+                  </div>
+                )}
 
                 {/* OTP Section */}
                 {otpStep === "INPUT" ? (
@@ -457,17 +557,27 @@ function LoginForm() {
                   >
                     {otpSending ? (
                       <RefreshCw className="w-4 h-4 animate-spin" />
+                    ) : citizenAuthChannel === "EMAIL" ? (
+                      <Send className="w-4 h-4" />
                     ) : (
                       <Smartphone className="w-4 h-4" />
                     )}
-                    <span>{otpSending ? "Dispatching UIDAI OTP..." : "Send Aadhaar OTP"}</span>
+                    <span>
+                      {otpSending
+                        ? citizenAuthChannel === "EMAIL"
+                          ? "Dispatching Email Verification..."
+                          : "Dispatching UIDAI OTP..."
+                        : citizenAuthChannel === "EMAIL"
+                        ? "Send Email Verification Code"
+                        : "Send Aadhaar OTP"}
+                    </span>
                   </button>
                 ) : (
                   <div className="space-y-3">
                     <div>
                       <div className="flex items-center justify-between mb-1">
                         <label className="text-xs uppercase text-emphasis font-bold">
-                          Enter 6-Digit OTP
+                          {citizenAuthChannel === "EMAIL" ? "Enter Email Verification Code" : "Enter 6-Digit OTP"}
                         </label>
                         <span className="text-[11px] text-emerald-800 font-mono font-bold">
                           Demo OTP: 123456
@@ -497,6 +607,8 @@ function LoginForm() {
                       >
                         {otpCountdown > 0
                           ? `Resend in ${otpCountdown}s`
+                          : citizenAuthChannel === "EMAIL"
+                          ? "Resend Email Code"
                           : "Resend UIDAI OTP"}
                       </button>
                     </div>
@@ -507,10 +619,18 @@ function LoginForm() {
                       className="w-full bg-emerald-700 hover:bg-emerald-800 text-white font-sans font-bold text-xs uppercase tracking-wider py-3 rounded-xl shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60"
                     >
                       {loading ? (
-                        <span>Verifying Cryptographic UIDAI Session...</span>
+                        <span>
+                          {citizenAuthChannel === "EMAIL"
+                            ? "Verifying Secure Email Session..."
+                            : "Verifying Cryptographic UIDAI Session..."}
+                        </span>
                       ) : (
                         <>
-                          <span>Verify & Enter Citizen Dashboard</span>
+                          <span>
+                            {citizenAuthChannel === "EMAIL"
+                              ? "Verify Email & Enter Citizen Portal"
+                              : "Verify & Enter Citizen Dashboard"}
+                          </span>
                           <ArrowRight className="w-4 h-4" />
                         </>
                       )}

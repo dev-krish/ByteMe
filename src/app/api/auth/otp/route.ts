@@ -15,7 +15,8 @@ export async function POST(request: Request) {
       );
     }
 
-    const cleanId = String(identifier).replace(/[\s-]/g, "");
+    const cleanId = String(identifier).replace(/[\s-]/g, "").toLowerCase();
+    const isEmail = identifier.includes("@") || body.channel === "email";
 
     if (action === "send") {
       // Generate standard 6-digit OTP (Default demo OTP is 123456 or a valid 6-digit random code)
@@ -23,9 +24,17 @@ export async function POST(request: Request) {
       const expiresAt = Date.now() + 5 * 60 * 1000; // 5 minutes
       OTP_STORE.set(cleanId, { otp, expiresAt });
 
+      let message = "OTP dispatched to UIDAI/Aadhaar-linked mobile number ending in ••••" + cleanId.slice(-4);
+      if (isEmail) {
+        const [u, d] = identifier.split("@");
+        const masked = u.length > 2 ? `${u[0]}•••${u.slice(-1)}@${d}` : `${u}@${d}`;
+        message = `Verification code dispatched to registered email ${masked}`;
+      }
+
       return NextResponse.json({
         success: true,
-        message: "OTP dispatched to UIDAI/Aadhaar-linked mobile number ending in ••••" + cleanId.slice(-4),
+        channel: isEmail ? "email" : "aadhaar",
+        message,
         demoOtp: "123456",
         expiresInSeconds: 300,
       });
@@ -40,7 +49,7 @@ export async function POST(request: Request) {
 
       if (!isValid) {
         return NextResponse.json(
-          { error: "Invalid or expired OTP. Please use demo OTP: 123456." },
+          { error: `Invalid or expired ${isEmail ? "Email verification code" : "Aadhaar OTP"}. Please use demo OTP: 123456.` },
           { status: 400 }
         );
       }
@@ -50,7 +59,8 @@ export async function POST(request: Request) {
 
       return NextResponse.json({
         success: true,
-        message: "UIDAI Aadhaar biometric / OTP verification successful.",
+        channel: isEmail ? "email" : "aadhaar",
+        message: isEmail ? "Official email verification successful." : "UIDAI Aadhaar biometric / OTP verification successful.",
       });
     }
 

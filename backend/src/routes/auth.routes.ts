@@ -20,11 +20,13 @@ const loginSchema = z.object({
 const citizenLoginSchema = z.object({
   identifier: z.string().min(1),
   otp: z.string().optional(),
+  channel: z.enum(["AADHAAR", "EMAIL"]).optional(),
 });
 
 const otpSchema = z.object({
   identifier: z.string().min(1),
   otp: z.string().optional(),
+  channel: z.enum(["AADHAAR", "EMAIL"]).optional(),
 });
 
 /**
@@ -51,12 +53,16 @@ router.post("/login", async (req: Request, res: Response) => {
 
 /**
  * POST /api/auth/citizen-login
- * Aadhaar / Phone OTP citizen authentication.
+ * Aadhaar / Phone OTP / Email citizen authentication.
  */
 router.post("/citizen-login", async (req: Request, res: Response) => {
   try {
     const body = citizenLoginSchema.parse(req.body);
-    const result = await loginCitizen(body);
+    const result = await loginCitizen({
+      identifier: body.identifier,
+      otp: body.otp,
+      verificationChannel: body.channel,
+    });
 
     res.json({
       success: true,
@@ -73,18 +79,18 @@ router.post("/citizen-login", async (req: Request, res: Response) => {
 
 /**
  * POST /api/auth/send-otp
- * Dispatches simulated UIDAI Aadhaar OTP
+ * Dispatches simulated UIDAI Aadhaar OTP or Email Verification Code
  */
 router.post("/send-otp", async (req: Request, res: Response) => {
   try {
-    const { identifier } = otpSchema.parse(req.body);
-    const result = sendOtp(identifier);
+    const { identifier, channel } = otpSchema.parse(req.body);
+    const result = sendOtp(identifier, channel);
 
     res.json(result);
   } catch (error: any) {
     res.status(400).json({
       success: false,
-      error: error.message || "Failed to dispatch OTP.",
+      error: error.message || "Failed to dispatch verification code.",
     });
   }
 });

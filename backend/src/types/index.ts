@@ -17,6 +17,7 @@ export interface LoginRequest {
 export interface CitizenLoginRequest {
   identifier: string; // Aadhaar or Mobile number or email
   otp?: string;
+  verificationChannel?: "AADHAAR" | "EMAIL";
 }
 
 export interface LoginResponse {
