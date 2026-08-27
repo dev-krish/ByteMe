@@ -6,6 +6,15 @@ backend/node_modules/
 .pnp.js
 .yarn/install-state.gz
 
+
+#Double check
+node_modules/
+.env
+.next/
+dist/
+build/
+
+
 # testing
 /coverage
 
