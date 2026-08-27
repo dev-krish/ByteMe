@@ -48,4 +48,25 @@ describe("RFCTLARR Valuation Engine", () => {
     expect(result.interest12PctLakhs).toBe(6); // 12% of 100 for 0.5 years
     expect(result.totalPayableLakhs).toBe(206);
   });
+
+  it("should enforce Section 26(1) by picking the highest between circle rate and sale deed avg", () => {
+    const input = {
+      circleRatePerHa: 20,
+      saleDeedAvgRatePerHa: 28, // Higher value should be chosen
+      areaHa: 2,
+      isRural: false,
+      distanceFromUrbanKm: 0,
+      structureValuationLakhs: 0,
+      treesCropsValuationLakhs: 0,
+      interestMonths: 0,
+      rehabilitationAssistanceLakhs: 0,
+    };
+
+    const result = computeRFCTLARRCompensation(input);
+    // 28 * 2 = 56 base land value
+    expect(result.baseLandValueLakhs).toBe(56);
+    expect(result.multiplierFactor).toBe(1.0);
+    expect(result.solatiumLakhs).toBe(56);
+    expect(result.totalPayableLakhs).toBe(112);
+  });
 });

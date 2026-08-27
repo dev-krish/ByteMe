@@ -3,9 +3,11 @@
 import Navbar from "@/components/layout/Navbar";
 import Sidebar from "@/components/layout/Sidebar";
 import Footer from "@/components/layout/Footer";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { computeRFCTLARRCompensation } from "@/lib/rfctlarr-engine";
 import { MOCK_BENEFICIARIES } from "@/lib/data/mock-projects";
+import { getStoredBeneficiaries, saveStoredBeneficiaries } from "@/lib/storage";
+import AwardDossierModal from "@/components/compensation/AwardDossierModal";
 import {
   Calculator,
   CircleDollarSign,
@@ -17,22 +19,32 @@ import {
   Receipt,
   Download,
   Building2,
+  Printer,
+  ShieldAlert,
+  MessageSquare,
 } from "lucide-react";
 
 export default function CompensationPage() {
-  // Calculator state
-  const [baseMarketRate, setBaseMarketRate] = useState<number>(24.5); // in Lakhs per Ha
+  // Section 26 Rate states
+  const [circleRate, setCircleRate] = useState<number>(22.0); // Lakhs/Ha
+  const [saleDeedRate, setSaleDeedRate] = useState<number>(26.5); // Lakhs/Ha (3-yr top 50% avg)
   const [areaHa, setAreaHa] = useState<number>(2.45);
   const [isRural, setIsRural] = useState<boolean>(true);
   const [distanceKm, setDistanceKm] = useState<number>(14);
   const [structureValuation, setStructureValuation] = useState<number>(4.2);
   const [treesValuation, setTreesValuation] = useState<number>(1.8);
-  const [interestMonths, setInterestMonths] = useState<number>(14); // from Sec 4 to Award
+  const [interestMonths, setInterestMonths] = useState<number>(14); // from Sec 11 to Award
   const [rehabGrant, setRehabGrant] = useState<number>(5.0); // R&R one-time grant
+
+  // Dossier Modal State
+  const [isDossierOpen, setIsDossierOpen] = useState(false);
+
+  const effectiveMarketRate = Math.max(circleRate, saleDeedRate);
 
   const calculation = useMemo(() => {
     return computeRFCTLARRCompensation({
-      baseMarketRatePerHa: baseMarketRate,
+      circleRatePerHa: circleRate,
+      saleDeedAvgRatePerHa: saleDeedRate,
       areaHa: areaHa,
       isRural: isRural,
       distanceFromUrbanKm: distanceKm,
@@ -42,7 +54,8 @@ export default function CompensationPage() {
       rehabilitationAssistanceLakhs: rehabGrant,
     });
   }, [
-    baseMarketRate,
+    circleRate,
+    saleDeedRate,
     areaHa,
     isRural,
     distanceKm,
@@ -53,24 +66,54 @@ export default function CompensationPage() {
   ]);
 
   const [beneficiaries, setBeneficiaries] = useState(MOCK_BENEFICIARIES);
-  const [dbtSuccessMsg, setDbtSuccessMsg] = useState<string | null>(null);
+  const [dbtSuccessMsg, setDbtSuccessMsg] = useState<{ text: string; sms?: string } | null>(null);
 
-  const handleTriggerDBT = (id: string) => {
-    setBeneficiaries((prev) =>
-      prev.map((b) =>
-        b.id === id
-          ? {
-              ...b,
-              dbtStatus: "SUCCESS",
-              disbursedLakhs: b.totalAwardLakhs,
-              utrNumber: `PFMS${Date.now().toString().slice(0, 10)}`,
-              disbursedDate: new Date().toISOString().split("T")[0],
-            }
-          : b
-      )
+  // Initialize from storage on mount
+  useEffect(() => {
+    setBeneficiaries(getStoredBeneficiaries());
+  }, []);
+
+  const handleTriggerDBT = (id: string, name: string, phone: string = "+91 98290-XXXXX") => {
+    const utr = `PFMS${Date.now().toString().slice(0, 10)}`;
+    const updated = beneficiaries.map((b) =>
+      b.id === id
+        ? {
+            ...b,
+            dbtStatus: "SUCCESS" as const,
+            disbursedLakhs: b.totalAwardLakhs,
+            utrNumber: utr,
+            disbursedDate: new Date().toISOString().split("T")[0],
+          }
+        : b
     );
-    setDbtSuccessMsg("PFMS / e-Kuber DBT transaction signed and queued!");
-    setTimeout(() => setDbtSuccessMsg(null), 3500);
+    setBeneficiaries(updated);
+    saveStoredBeneficiaries(updated);
+    setDbtSuccessMsg({
+      text: `PFMS DBT batch dispatched! UTR: ${utr} credited to ${name}.`,
+      sms: `SMS Sent to ${phone}: "Govt of RJ: ₹${calculation.totalPayableLakhs}L credited via DBT under RFCTLARR Award for Plot 42A. Ref: ${utr}"`,
+    });
+    setTimeout(() => setDbtSuccessMsg(null), 6000);
+  };
+
+  const handleRouteToEscrow = (id: string, name: string) => {
+    const escrowRef = `ESCROW-SEC64-${Date.now().toString().slice(0, 8)}`;
+    const updated = beneficiaries.map((b) =>
+      b.id === id
+        ? {
+            ...b,
+            dbtStatus: "SUCCESS" as const,
+            disbursedLakhs: b.totalAwardLakhs,
+            utrNumber: escrowRef,
+            disbursedDate: new Date().toISOString().split("T")[0],
+          }
+        : b
+    );
+    setBeneficiaries(updated);
+    saveStoredBeneficiaries(updated);
+    setDbtSuccessMsg({
+      text: `Section 64 Litigation Guard: Disbursal to ${name} locked; ₹${calculation.totalPayableLakhs}L routed to District Land Tribunal Escrow (${escrowRef}).`,
+    });
+    setTimeout(() => setDbtSuccessMsg(null), 6000);
   };
 
   return (
@@ -101,9 +144,17 @@ export default function CompensationPage() {
 
           {/* Toast Message */}
           {dbtSuccessMsg && (
-            <div className="mb-6 p-3 rounded-xl bg-success-green/15 border border-success-green/30 text-success-green text-xs font-mono flex items-center gap-2 animate-in fade-in">
-              <CheckCircle2 className="w-4 h-4" />
-              <span>{dbtSuccessMsg}</span>
+            <div className="mb-6 p-4 rounded-xl bg-success-green/15 border border-success-green/30 text-success-green text-xs font-mono space-y-1 animate-in fade-in">
+              <div className="flex items-center gap-2 font-bold">
+                <CheckCircle2 className="w-4 h-4" />
+                <span>{dbtSuccessMsg.text}</span>
+              </div>
+              {dbtSuccessMsg.sms && (
+                <div className="text-[11px] text-emphasis flex items-center gap-1.5 pl-6">
+                  <MessageSquare className="w-3.5 h-3.5 text-primary" />
+                  <span className="italic">{dbtSuccessMsg.sms}</span>
+                </div>
+              )}
             </div>
           )}
 
@@ -116,36 +167,61 @@ export default function CompensationPage() {
                   <Calculator className="w-4 h-4 text-primary" />
                   <span>Statutory Formula Parameters</span>
                 </h2>
-                <span className="text-[10px] font-mono text-emphasis">Sec 26-30</span>
+                <span className="text-[10px] font-mono text-primary font-bold bg-primary/10 px-2 py-0.5 rounded">
+                  Sec 26-30 RFCTLARR
+                </span>
               </div>
 
               <div className="space-y-3.5 text-xs font-mono">
-                {/* Base Rate */}
-                <div>
-                  <div className="flex justify-between mb-1">
-                    <label className="text-emphasis font-semibold">
-                      Base Market Rate (₹ Lakhs / Ha):
-                    </label>
-                    <span className="font-bold text-primary">₹{baseMarketRate} L/Ha</span>
+                {/* Section 26: Dual Market Rate Comparison */}
+                <div className="p-3 bg-surface-container-high/60 rounded-xl border border-outline-variant/30 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-emphasis font-bold text-[11px]">
+                      Section 26(1) Market Rate Determination:
+                    </span>
+                    <span className="text-[10px] font-bold text-primary bg-primary/10 px-2 py-0.5 rounded">
+                      Effective: ₹{effectiveMarketRate.toFixed(1)} L/Ha
+                    </span>
                   </div>
-                  <input
-                    type="range"
-                    min="5"
-                    max="100"
-                    step="0.5"
-                    value={baseMarketRate}
-                    onChange={(e) => setBaseMarketRate(Number(e.target.value))}
-                    className="w-full accent-primary cursor-pointer"
-                  />
+
+                  <div className="grid grid-cols-2 gap-2 pt-1">
+                    <div>
+                      <label className="block text-[10px] text-emphasis mb-1">
+                        Collector Circle Rate (₹ L/Ha):
+                      </label>
+                      <input
+                        type="number"
+                        step="0.5"
+                        value={circleRate}
+                        onChange={(e) => setCircleRate(Number(e.target.value))}
+                        className="solarized-input w-full p-2 rounded-lg font-bold"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] text-emphasis mb-1">
+                        3-Yr Sale Deeds Avg (₹ L/Ha):
+                      </label>
+                      <input
+                        type="number"
+                        step="0.5"
+                        value={saleDeedRate}
+                        onChange={(e) => setSaleDeedRate(Number(e.target.value))}
+                        className="solarized-input w-full p-2 rounded-lg font-bold"
+                      />
+                    </div>
+                  </div>
+                  <p className="text-[10px] text-emphasis italic">
+                    *Rule: Law strictly enforces the higher of Circle Rate (₹{circleRate}L) vs Registered Deeds (₹{saleDeedRate}L).
+                  </p>
                 </div>
 
                 {/* Area Extent */}
                 <div>
                   <div className="flex justify-between mb-1">
                     <label className="text-emphasis font-semibold">
-                      Area Extent (Hectares):
+                      Acquired Land Extent (Hectares):
                     </label>
-                    <span className="font-bold text-primary">{areaHa} Ha</span>
+                    <span className="font-bold text-primary">{areaHa} Ha ({(areaHa * 2.471).toFixed(2)} Acres)</span>
                   </div>
                   <input
                     type="range"
@@ -161,7 +237,7 @@ export default function CompensationPage() {
                 {/* Rural Multiplier toggle & distance */}
                 <div className="p-3 bg-surface-container-high/60 rounded-xl border border-outline-variant/30 space-y-2">
                   <div className="flex items-center justify-between">
-                    <span className="text-emphasis font-semibold">Land Location Type:</span>
+                    <span className="text-emphasis font-semibold">Location Multiplier (Sec 26(1)(b)):</span>
                     <div className="flex gap-2">
                       <button
                         type="button"
@@ -269,51 +345,61 @@ export default function CompensationPage() {
                 </div>
 
                 {/* Breakdown List */}
-                <div className="space-y-2.5 text-xs font-mono">
+                <div className="space-y-2 text-xs font-mono">
                   <div className="flex justify-between py-1 border-b border-outline-variant/15">
-                    <span className="text-emphasis">Base Land Value (Rate × Area):</span>
+                    <span className="text-emphasis">Sec 26 Base Land Value (Rate × Area):</span>
                     <span className="font-semibold text-on-surface">₹{calculation.baseLandValueLakhs} Lakhs</span>
                   </div>
                   <div className="flex justify-between py-1 border-b border-outline-variant/15">
-                    <span className="text-emphasis">Rural Multiplier Factor:</span>
+                    <span className="text-emphasis">Rural Distance Multiplier:</span>
                     <span className="font-bold text-secondary">{calculation.multiplierFactor}x</span>
                   </div>
                   <div className="flex justify-between py-1 border-b border-outline-variant/15">
-                    <span className="text-emphasis">Multiplied Market Value (A):</span>
+                    <span className="text-emphasis">Multiplied Market Value:</span>
                     <span className="font-bold text-on-surface">₹{calculation.multipliedLandValueLakhs} Lakhs</span>
                   </div>
                   <div className="flex justify-between py-1 border-b border-outline-variant/15">
-                    <span className="text-emphasis">Structure & Asset Valuation (B):</span>
+                    <span className="text-emphasis">Sec 29 Asset Valuation (Structures + Trees):</span>
                     <span className="font-semibold text-on-surface">₹{calculation.structureAndAssetsLakhs} Lakhs</span>
                   </div>
                   <div className="flex justify-between py-1 border-b border-outline-variant/15">
-                    <span className="text-emphasis">Statutory 100% Solatium (Sec 30(1)):</span>
+                    <span className="text-emphasis">Sec 30(1) Statutory 100% Solatium:</span>
                     <span className="font-bold text-primary">₹{calculation.solatiumLakhs} Lakhs</span>
                   </div>
                   <div className="flex justify-between py-1 border-b border-outline-variant/15">
-                    <span className="text-emphasis">Additional 12% p.a. Interest (Sec 30(3)):</span>
+                    <span className="text-emphasis">Sec 30(3) 12% p.a. Additional Interest:</span>
                     <span className="font-semibold text-on-surface">₹{calculation.interest12PctLakhs} Lakhs</span>
                   </div>
                   <div className="flex justify-between py-1 border-b border-outline-variant/15">
-                    <span className="text-emphasis">Rehabilitation & Resettlement Grant:</span>
+                    <span className="text-emphasis">Second Schedule R&R Grant:</span>
                     <span className="font-semibold text-on-surface">₹{calculation.rehabilitationGrantLakhs} Lakhs</span>
                   </div>
                 </div>
               </div>
 
-              {/* Total Payable Box */}
-              <div className="mt-6 p-4 rounded-xl bg-primary/10 border border-primary/30">
-                <div className="text-[11px] font-mono uppercase text-emphasis font-semibold">
-                  Final Statutory Award Total
+              {/* Total Payable Box + Form 7 Action */}
+              <div className="mt-6 space-y-3">
+                <div className="p-4 rounded-xl bg-primary/10 border border-primary/30">
+                  <div className="text-[11px] font-mono uppercase text-emphasis font-semibold">
+                    Final Statutory Award Total
+                  </div>
+                  <div className="flex items-baseline justify-between mt-1">
+                    <span className="text-2xl md:text-3xl font-bold font-mono text-primary">
+                      ₹{calculation.totalPayableLakhs} Lakhs
+                    </span>
+                    <span className="text-xs font-mono font-bold text-emphasis">
+                      ({calculation.currencyFormattedTotal})
+                    </span>
+                  </div>
                 </div>
-                <div className="flex items-baseline justify-between mt-1">
-                  <span className="text-2xl md:text-3xl font-bold font-mono text-primary">
-                    ₹{calculation.totalPayableLakhs} Lakhs
-                  </span>
-                  <span className="text-xs font-mono font-bold text-emphasis">
-                    ({calculation.currencyFormattedTotal})
-                  </span>
-                </div>
+
+                <button
+                  onClick={() => setIsDossierOpen(true)}
+                  className="w-full bg-[#006098] hover:bg-[#006098]/90 text-white text-xs font-mono font-bold uppercase tracking-wider py-2.5 rounded-lg flex items-center justify-center gap-2 shadow-sm transition-all"
+                >
+                  <Printer className="w-4 h-4" />
+                  <span>Generate Form 7 Statutory Award Dossier (PDF)</span>
+                </button>
               </div>
             </div>
           </div>
@@ -326,7 +412,7 @@ export default function CompensationPage() {
                   Direct Benefit Transfer (DBT) Beneficiary Ledger
                 </h3>
                 <p className="text-xs text-emphasis mt-0.5">
-                  Direct PFMS / e-Kuber payment gateway integration for Aadhaar-linked accounts.
+                  Direct PFMS / e-Kuber payment gateway integration for Aadhaar-linked accounts with Section 64 litigation safeguards.
                 </p>
               </div>
             </div>
@@ -372,25 +458,30 @@ export default function CompensationPage() {
                         </span>
                         {b.utrNumber && (
                           <div className="text-[10px] text-emphasis mt-0.5">
-                            UTR: {b.utrNumber}
+                            Ref: {b.utrNumber}
                           </div>
                         )}
                       </td>
                       <td className="py-3 text-right">
                         {b.dbtStatus !== "SUCCESS" && b.dbtStatus !== "HOLD_DISPUTE" ? (
                           <button
-                            onClick={() => handleTriggerDBT(b.id)}
+                            onClick={() => handleTriggerDBT(b.id, b.name)}
                             className="bg-primary hover:bg-primary/90 text-white px-3 py-1.5 rounded text-[11px] font-bold transition-all shadow-sm"
                           >
                             Sign & Disburse
                           </button>
                         ) : b.dbtStatus === "HOLD_DISPUTE" ? (
-                          <span className="text-[11px] text-danger font-bold">
-                            Stayed by Court
-                          </span>
+                          <button
+                            onClick={() => handleRouteToEscrow(b.id, b.name)}
+                            className="bg-[#dc322f] hover:bg-[#dc322f]/90 text-white px-2.5 py-1 rounded text-[10px] font-bold flex items-center gap-1 ml-auto shadow-sm"
+                          >
+                            <ShieldAlert className="w-3 h-3" />
+                            <span>Route to Escrow (Sec 64)</span>
+                          </button>
                         ) : (
-                          <span className="text-[11px] text-success-green font-bold">
-                            Disbursed ✓
+                          <span className="text-[11px] text-success-green font-bold flex items-center justify-end gap-1">
+                            <CheckCircle2 className="w-3.5 h-3.5" />
+                            <span>Disbursed</span>
                           </span>
                         )}
                       </td>
@@ -402,6 +493,21 @@ export default function CompensationPage() {
           </div>
         </main>
       </div>
+
+      {/* Form 7 Statutory Award Dossier Modal */}
+      <AwardDossierModal
+        isOpen={isDossierOpen}
+        onClose={() => setIsDossierOpen(false)}
+        khasraNo="Plot 42A"
+        village="Ramgarh Revenue Ward 3"
+        ownerName="Rameshwar Prasad Meena"
+        areaHa={areaHa}
+        circleRate={circleRate}
+        saleDeedRate={saleDeedRate}
+        isRural={isRural}
+        distanceKm={distanceKm}
+        calculation={calculation}
+      />
 
       <Footer />
     </div>

@@ -84,7 +84,9 @@ export interface CadastralParcel {
 }
 
 export interface CompensationInput {
-  baseMarketRatePerHa: number; // Max of circle rate or sale deed avg
+  baseMarketRatePerHa?: number; // Calculated or manual
+  circleRatePerHa?: number; // Government circle / collector rate
+  saleDeedAvgRatePerHa?: number; // Average of top 50% 3-year registered sale deeds
   areaHa: number;
   isRural: boolean;
   distanceFromUrbanKm: number; // Determines multiplier (1.0 to 2.0)

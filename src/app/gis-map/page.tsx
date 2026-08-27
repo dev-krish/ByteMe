@@ -3,9 +3,11 @@
 import Navbar from "@/components/layout/Navbar";
 import Sidebar from "@/components/layout/Sidebar";
 import Footer from "@/components/layout/Footer";
-import { useState } from "react";
+import dynamic from "next/dynamic";
+import { useState, useEffect, useRef } from "react";
 import { MOCK_PARCELS } from "@/lib/data/cadastral-parcels";
 import { CadastralParcel } from "@/types";
+import { getStoredParcels, saveStoredParcels } from "@/lib/storage";
 import {
   Layers,
   Search,
@@ -19,18 +21,248 @@ import {
   Home,
   X,
   ExternalLink,
+  UploadCloud,
+  Download,
+  FileJson,
+  RefreshCw,
+  Sparkles,
 } from "lucide-react";
 
+const DynamicCadastralMap = dynamic(
+  () => import("@/components/gis/CadastralMap"),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="w-full h-full min-h-[480px] flex items-center justify-center font-mono text-xs text-primary bg-surface-container-low/40">
+        Loading High-Precision Spatial Cadastral Engine...
+      </div>
+    ),
+  }
+);
+
+// Sample Corridor Presets
+const CORRIDOR_PRESETS: Record<string, CadastralParcel[]> = {
+  "DAUSA_PKG1": MOCK_PARCELS,
+  "VARANASI_PKG2": [
+    {
+      id: "var-101",
+      khasraNo: "Plot 101/A",
+      village: "Chandauli North Sector",
+      tehsil: "Mughalsarai",
+      district: "Chandauli",
+      state: "Uttar Pradesh",
+      areaHa: 3.1,
+      landUse: "AGRICULTURAL",
+      soilClassification: "IRRIGATED",
+      ownerName: "Sudhir Kumar Tripathi",
+      aadhaarLinked: true,
+      panNo: "TRIPK1102A",
+      circleRatePerHa: 2800000,
+      saleDeedAvgRatePerHa: 3200000,
+      surveyStatus: "VERIFIED",
+      structuresCount: 1,
+      treesCount: 20,
+      coordinates: [
+        [25.272, 83.111],
+        [25.278, 83.115],
+        [25.276, 83.123],
+        [25.270, 83.119],
+        [25.272, 83.111],
+      ],
+      center: [25.274, 83.117],
+      acquisitionStage: "SECTION_19_DECLARATION",
+      compensationStatus: "AWARD_PUBLISHED",
+      awardedAmountLakhs: 88.4,
+    },
+    {
+      id: "var-102",
+      khasraNo: "Plot 102/B",
+      village: "Chandauli North Sector",
+      tehsil: "Mughalsarai",
+      district: "Chandauli",
+      state: "Uttar Pradesh",
+      areaHa: 2.8,
+      landUse: "COMMERCIAL",
+      soilClassification: "UNIRRIGATED",
+      ownerName: "Ganga Infrastructure Ltd",
+      aadhaarLinked: true,
+      panNo: "GINFR8912P",
+      circleRatePerHa: 4500000,
+      saleDeedAvgRatePerHa: 5200000,
+      surveyStatus: "DISPUTED",
+      disputeNotes: "Section 64 litigation hold: Ownership objection before High Court.",
+      structuresCount: 2,
+      treesCount: 0,
+      coordinates: [
+        [25.278, 83.115],
+        [25.284, 83.119],
+        [25.282, 83.127],
+        [25.276, 83.123],
+        [25.278, 83.115],
+      ],
+      center: [25.280, 83.121],
+      acquisitionStage: "SECTION_19_DECLARATION",
+      compensationStatus: "ESCROW_LITIGATION",
+      awardedAmountLakhs: 145.6,
+    },
+  ],
+};
+
 export default function GisMapPage() {
-  const [parcels, setParcels] = useState<CadastralParcel[]>(MOCK_PARCELS);
-  const [selectedParcel, setSelectedParcel] = useState<CadastralParcel | null>(MOCK_PARCELS[0]);
+  const [parcels, setParcels] = useState<CadastralParcel[]>([]);
+  const [selectedParcel, setSelectedParcel] = useState<CadastralParcel | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const [selectedCorridor, setSelectedCorridor] = useState("DAUSA_PKG1");
+  const [importNotification, setImportNotification] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   const [activeLayers, setActiveLayers] = useState({
     rowBuffer: true,
     cadastralBoundaries: true,
     disputedZones: true,
     forestZones: false,
   });
+
+  // Initialize from storage or default
+  useEffect(() => {
+    const stored = getStoredParcels();
+    setParcels(stored);
+    setSelectedParcel(stored[0] || null);
+  }, []);
+
+  const handleCorridorChange = (corridorKey: string) => {
+    setSelectedCorridor(corridorKey);
+    const newParcels = CORRIDOR_PRESETS[corridorKey] || MOCK_PARCELS;
+    setParcels(newParcels);
+    setSelectedParcel(newParcels[0] || null);
+    saveStoredParcels(newParcels);
+    setImportNotification(`Loaded alignment: ${corridorKey.replace("_", " ")} (${newParcels.length} parcels)`);
+    setTimeout(() => setImportNotification(null), 4000);
+  };
+
+  // Live GeoJSON File Upload Ingestion Handler
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (evt) => {
+      try {
+        const json = JSON.parse(evt.target?.result as string);
+        
+        let newParcels: CadastralParcel[] = [];
+
+        if (json.type === "FeatureCollection" && Array.isArray(json.features)) {
+          newParcels = json.features.map((feat: any, idx: number) => {
+            const props = feat.properties || {};
+            const coords = feat.geometry?.coordinates?.[0] || [
+              [26.892 + idx * 0.005, 76.331 + idx * 0.005],
+              [26.897 + idx * 0.005, 76.335 + idx * 0.005],
+              [26.895 + idx * 0.005, 76.342 + idx * 0.005],
+              [26.892 + idx * 0.005, 76.331 + idx * 0.005],
+            ];
+            
+            // Format to Leaflet [lat, lng]
+            const formattedCoords: [number, number][] = coords.map((c: any) => 
+              Array.isArray(c) && c.length >= 2 ? [c[1], c[0]] : [26.89, 76.33]
+            );
+
+            return {
+              id: props.id || `imported-${Date.now()}-${idx}`,
+              khasraNo: props.khasraNo || props.khasra_no || `Plot ${100 + idx}`,
+              village: props.village || "Uploaded Revenue Ward",
+              tehsil: props.tehsil || "Central Tehsil",
+              district: props.district || "Project District",
+              state: props.state || "State Jurisdiction",
+              areaHa: Number(props.areaHa || props.area_ha || (2.5 + idx * 0.5)),
+              landUse: props.landUse || "AGRICULTURAL",
+              soilClassification: props.soilClassification || "IRRIGATED",
+              ownerName: props.ownerName || props.owner_name || `Landowner ${idx + 1}`,
+              aadhaarLinked: props.aadhaarLinked ?? true,
+              panNo: props.panNo || "XXXXX0000X",
+              circleRatePerHa: Number(props.circleRatePerHa || 2500000),
+              saleDeedAvgRatePerHa: Number(props.saleDeedAvgRatePerHa || 2800000),
+              surveyStatus: props.surveyStatus || (idx === 1 ? "DISPUTED" : "VERIFIED"),
+              disputeNotes: props.disputeNotes,
+              structuresCount: Number(props.structuresCount || 1),
+              treesCount: Number(props.treesCount || 10),
+              coordinates: formattedCoords,
+              center: formattedCoords[0] || [26.89, 76.33],
+              acquisitionStage: "SECTION_19_DECLARATION",
+              compensationStatus: idx === 1 ? "ESCROW_LITIGATION" : "AWARD_PUBLISHED",
+              awardedAmountLakhs: Number(props.awardedAmountLakhs || 65.0),
+            };
+          });
+        } else if (Array.isArray(json)) {
+          newParcels = json;
+        }
+
+        if (newParcels.length > 0) {
+          setParcels(newParcels);
+          setSelectedParcel(newParcels[0]);
+          saveStoredParcels(newParcels);
+          setImportNotification(`Successfully ingested ${newParcels.length} cadastral parcels from ${file.name}!`);
+        } else {
+          setImportNotification("No valid GeoJSON polygon features found in file.");
+        }
+      } catch (err) {
+        setImportNotification("Error parsing GeoJSON file. Please check syntax.");
+      }
+      setTimeout(() => setImportNotification(null), 5000);
+    };
+    reader.readAsText(file);
+  };
+
+  // Export DILRMP OGC GeoJSON Package
+  const handleExportDILRMP = () => {
+    const featureCollection = {
+      type: "FeatureCollection",
+      crs: {
+        type: "name",
+        properties: { name: "urn:ogc:def:crs:OGC:1.3:CRS84" },
+      },
+      metadata: {
+        standard: "Digital India Land Records Modernization Programme (DILRMP)",
+        act: "RFCTLARR Act 2013",
+        generatedAt: new Date().toISOString(),
+        totalParcels: parcels.length,
+        totalAreaHa: parcels.reduce((acc, p) => acc + p.areaHa, 0),
+      },
+      features: parcels.map((p) => ({
+        type: "Feature",
+        properties: {
+          id: p.id,
+          khasraNo: p.khasraNo,
+          village: p.village,
+          tehsil: p.tehsil,
+          district: p.district,
+          state: p.state,
+          areaHa: p.areaHa,
+          ownerName: p.ownerName,
+          aadhaarLinked: p.aadhaarLinked,
+          circleRatePerHa: p.circleRatePerHa,
+          saleDeedAvgRatePerHa: p.saleDeedAvgRatePerHa,
+          surveyStatus: p.surveyStatus,
+          disputeNotes: p.disputeNotes,
+          awardedAmountLakhs: p.awardedAmountLakhs,
+        },
+        geometry: {
+          type: "Polygon",
+          coordinates: [p.coordinates.map((c) => [c[1], c[0]])], // [lng, lat]
+        },
+      })),
+    };
+
+    const blob = new Blob([JSON.stringify(featureCollection, null, 2)], {
+      type: "application/geo+json",
+    });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `DILRMP_Cadastral_Export_${new Date().toISOString().slice(0, 10)}.geojson`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
 
   const filteredParcels = parcels.filter(
     (p) =>
@@ -54,8 +286,9 @@ export default function GisMapPage() {
                 <span className="text-xs font-mono font-bold uppercase bg-surface-container-high px-2 py-0.5 rounded text-secondary border border-outline-variant/30">
                   Spatial Cadastral Core
                 </span>
-                <span className="text-xs font-mono text-emphasis">
-                  Dausa Revenue Division (EPSG:4326)
+                <span className="text-xs font-mono text-success-green flex items-center gap-1">
+                  <span className="w-2 h-2 rounded-full bg-success-green animate-pulse" />
+                  DILRMP Federated Sync: Online
                 </span>
               </div>
               <h1 className="text-xl md:text-2xl font-bold text-on-surface font-sans">
@@ -63,8 +296,46 @@ export default function GisMapPage() {
               </h1>
             </div>
 
-            {/* Search Input */}
-            <div className="flex items-center gap-2">
+            {/* Actions: Corridor Selector + File Import + DILRMP Export */}
+            <div className="flex flex-wrap items-center gap-2">
+              {/* Corridor Preset Dropdown */}
+              <select
+                value={selectedCorridor}
+                onChange={(e) => handleCorridorChange(e.target.value)}
+                className="solarized-input px-2.5 py-1.5 rounded-lg text-xs font-mono font-bold text-primary"
+              >
+                <option value="DAUSA_PKG1">Delhi-Mumbai Exp (Dausa)</option>
+                <option value="VARANASI_PKG2">Varanasi-Kolkata (Chandauli)</option>
+              </select>
+
+              {/* GeoJSON File Ingestion Button */}
+              <input
+                type="file"
+                ref={fileInputRef}
+                onChange={handleFileUpload}
+                accept=".json,.geojson"
+                className="hidden"
+              />
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                className="bg-surface-container-high hover:bg-surface-container text-on-surface text-xs font-mono font-bold px-3 py-1.5 rounded-lg border border-outline-variant/40 flex items-center gap-1.5 shadow-sm transition-all"
+                title="Upload custom GeoJSON dataset"
+              >
+                <UploadCloud className="w-3.5 h-3.5 text-primary" />
+                <span>Import GeoJSON</span>
+              </button>
+
+              {/* DILRMP Export Button */}
+              <button
+                onClick={handleExportDILRMP}
+                className="bg-primary hover:bg-primary/90 text-white text-xs font-mono font-bold px-3 py-1.5 rounded-lg flex items-center gap-1.5 shadow-sm transition-all"
+                title="Export standard DILRMP OGC Schema GeoJSON for State Bhulekh servers"
+              >
+                <Download className="w-3.5 h-3.5" />
+                <span>Export DILRMP</span>
+              </button>
+
+              {/* Search Input */}
               <div className="relative">
                 <Search className="w-4 h-4 text-emphasis absolute left-3 top-1/2 -translate-y-1/2" />
                 <input
@@ -72,23 +343,31 @@ export default function GisMapPage() {
                   placeholder="Search Khasra / Owner..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="solarized-input pl-9 pr-3 py-1.5 rounded-lg text-xs font-mono w-56"
+                  className="solarized-input pl-9 pr-3 py-1.5 rounded-lg text-xs font-mono w-48"
                 />
               </div>
             </div>
           </div>
 
+          {/* Import Notification Banner */}
+          {importNotification && (
+            <div className="mb-3 p-2.5 rounded-xl bg-primary/15 border border-primary/30 text-primary text-xs font-mono flex items-center gap-2 animate-in fade-in">
+              <CheckCircle className="w-4 h-4" />
+              <span>{importNotification}</span>
+            </div>
+          )}
+
           {/* GIS Map & Inspector Container */}
           <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-4 min-h-[550px]">
             {/* GIS Map Canvas View */}
-            <div className="lg:col-span-8 glass-card rounded-2xl p-4 border border-outline-variant/40 relative flex flex-col overflow-hidden">
+            <div className="lg:col-span-8 glass-card rounded-2xl p-4 border border-outline-variant/40 relative flex flex-col overflow-hidden min-h-[520px]">
               {/* Map Floating Layer Controls */}
-              <div className="absolute top-6 left-6 z-20 glass-card p-3 rounded-xl border border-outline-variant/50 text-xs font-mono space-y-2 shadow-lg max-w-xs">
+              <div className="absolute top-6 left-6 z-20 glass-card p-3 rounded-xl border border-outline-variant/50 text-xs font-mono space-y-2 shadow-lg max-w-xs backdrop-blur-md">
                 <div className="flex items-center gap-2 font-bold text-primary pb-1 border-b border-outline-variant/30">
                   <Layers className="w-3.5 h-3.5" />
-                  <span>Cadastral Layers</span>
+                  <span>Cadastral Spatial Layers</span>
                 </div>
-                <label className="flex items-center gap-2 cursor-pointer">
+                <label className="flex items-center gap-2 cursor-pointer text-[11px]">
                   <input
                     type="checkbox"
                     checked={activeLayers.cadastralBoundaries}
@@ -100,9 +379,9 @@ export default function GisMapPage() {
                     }
                     className="rounded text-primary focus:ring-primary"
                   />
-                  <span>Revenue Boundaries</span>
+                  <span>Revenue Boundaries (Khasras)</span>
                 </label>
-                <label className="flex items-center gap-2 cursor-pointer">
+                <label className="flex items-center gap-2 cursor-pointer text-[11px]">
                   <input
                     type="checkbox"
                     checked={activeLayers.rowBuffer}
@@ -114,9 +393,9 @@ export default function GisMapPage() {
                     }
                     className="rounded text-primary focus:ring-primary"
                   />
-                  <span>60m RoW Corridor Buffer</span>
+                  <span>60m RoW Corridor Buffer (NHAI)</span>
                 </label>
-                <label className="flex items-center gap-2 cursor-pointer">
+                <label className="flex items-center gap-2 cursor-pointer text-[11px]">
                   <input
                     type="checkbox"
                     checked={activeLayers.disputedZones}
@@ -128,147 +407,54 @@ export default function GisMapPage() {
                     }
                     className="rounded text-danger focus:ring-danger"
                   />
-                  <span>Disputed Khasras (Sec 64)</span>
+                  <span>Disputed Khasras (Sec 64 Hold)</span>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer text-[11px]">
+                  <input
+                    type="checkbox"
+                    checked={activeLayers.forestZones}
+                    onChange={(e) =>
+                      setActiveLayers({
+                        ...activeLayers,
+                        forestZones: e.target.checked,
+                      })
+                    }
+                    className="rounded text-success-green focus:ring-success-green"
+                  />
+                  <span>Forest Zones (Sec 10 Exemption)</span>
                 </label>
               </div>
 
-              {/* Map Canvas with Solarized Cadastral Polygons */}
-              <div className="flex-1 w-full h-full bg-[#fdf6e3] rounded-xl border border-outline-variant/40 relative overflow-hidden flex items-center justify-center">
-                {/* Background grid pattern */}
-                <div
-                  className="absolute inset-0 opacity-20 pointer-events-none"
-                  style={{
-                    backgroundImage:
-                      "linear-gradient(#586e75 0.5px, transparent 0.5px), linear-gradient(90deg, #586e75 0.5px, transparent 0.5px)",
-                    backgroundSize: "40px 40px",
-                  }}
-                />
-
-                {/* SVG Map Canvas */}
-                <svg
-                  className="w-full h-full max-h-[500px]"
-                  viewBox="0 0 600 400"
-                >
-                  {/* RoW Buffer Zone */}
-                  {activeLayers.rowBuffer && (
-                    <path
-                      d="M 50,80 Q 280,180 550,220 L 530,300 Q 260,260 30,160 Z"
-                      fill="#007abe"
-                      fillOpacity="0.08"
-                      stroke="#006098"
-                      strokeWidth="1.5"
-                      strokeDasharray="6 4"
-                    />
-                  )}
-
-                  {/* Parcel 1: Plot 42A */}
-                  {activeLayers.cadastralBoundaries && (
-                    <g
-                      onClick={() => setSelectedParcel(MOCK_PARCELS[0])}
-                      className="cursor-pointer group"
-                    >
-                      <polygon
-                        points="80,90 200,110 180,210 60,190"
-                        fill={selectedParcel?.id === "parcel-42a" ? "#89f5ea" : "#daf2fb"}
-                        fillOpacity="0.75"
-                        stroke="#006098"
-                        strokeWidth={selectedParcel?.id === "parcel-42a" ? "3" : "1.5"}
-                        className="transition-all hover:fill-secondary-container"
-                      />
-                      <text x="100" y="150" className="text-xs font-mono font-bold fill-primary">
-                        Plot 42A (2.45 Ha)
-                      </text>
-                    </g>
-                  )}
-
-                  {/* Parcel 2: Plot 108/2 */}
-                  {activeLayers.cadastralBoundaries && (
-                    <g
-                      onClick={() => setSelectedParcel(MOCK_PARCELS[1])}
-                      className="cursor-pointer group"
-                    >
-                      <polygon
-                        points="200,110 380,90 400,200 180,210"
-                        fill={selectedParcel?.id === "parcel-108-2" ? "#89f5ea" : "#e3f7ff"}
-                        fillOpacity="0.75"
-                        stroke="#006098"
-                        strokeWidth={selectedParcel?.id === "parcel-108-2" ? "3" : "1.5"}
-                        className="transition-all hover:fill-secondary-container"
-                      />
-                      <text x="240" y="150" className="text-xs font-mono font-bold fill-primary">
-                        Plot 108/2 (3.80 Ha)
-                      </text>
-                    </g>
-                  )}
-
-                  {/* Parcel 3: Plot 219B (Disputed) */}
-                  {activeLayers.disputedZones && (
-                    <g
-                      onClick={() => setSelectedParcel(MOCK_PARCELS[2])}
-                      className="cursor-pointer group"
-                    >
-                      <polygon
-                        points="60,190 180,210 160,320 40,300"
-                        fill={selectedParcel?.id === "parcel-219b" ? "#ffdad6" : "#ffdad6"}
-                        fillOpacity="0.8"
-                        stroke="#dc322f"
-                        strokeWidth={selectedParcel?.id === "parcel-219b" ? "3" : "2"}
-                        strokeDasharray="4 2"
-                        className="transition-all hover:fill-error-container"
-                      />
-                      <text x="70" y="260" className="text-xs font-mono font-bold fill-danger">
-                        Plot 219B [Dispute]
-                      </text>
-                    </g>
-                  )}
-
-                  {/* Parcel 4: Plot 77/1 */}
-                  {activeLayers.cadastralBoundaries && (
-                    <g
-                      onClick={() => setSelectedParcel(MOCK_PARCELS[3])}
-                      className="cursor-pointer group"
-                    >
-                      <polygon
-                        points="180,210 400,200 370,310 160,320"
-                        fill={selectedParcel?.id === "parcel-77-1" ? "#89f5ea" : "#daf2fb"}
-                        fillOpacity="0.7"
-                        stroke="#006098"
-                        strokeWidth={selectedParcel?.id === "parcel-77-1" ? "3" : "1.5"}
-                        className="transition-all hover:fill-secondary-container"
-                      />
-                      <text x="230" y="265" className="text-xs font-mono font-bold fill-primary">
-                        Plot 77/1 (1.85 Ha)
-                      </text>
-                    </g>
-                  )}
-
-                  {/* Parcel 5: Plot 14/C */}
-                  {activeLayers.cadastralBoundaries && (
-                    <g
-                      onClick={() => setSelectedParcel(MOCK_PARCELS[4])}
-                      className="cursor-pointer group"
-                    >
-                      <polygon
-                        points="400,200 540,190 510,300 370,310"
-                        fill={selectedParcel?.id === "parcel-14c" ? "#89f5ea" : "#e3f7ff"}
-                        fillOpacity="0.7"
-                        stroke="#006098"
-                        strokeWidth={selectedParcel?.id === "parcel-14c" ? "3" : "1.5"}
-                        className="transition-all hover:fill-secondary-container"
-                      />
-                      <text x="420" y="255" className="text-xs font-mono font-bold fill-primary">
-                        Plot 14/C (2.90 Ha)
-                      </text>
-                    </g>
-                  )}
-                </svg>
-
-                {/* Map Bottom HUD */}
-                <div className="absolute bottom-4 right-4 glass-card px-3 py-1.5 rounded-lg border border-outline-variant/40 text-[11px] font-mono text-emphasis flex items-center gap-3">
-                  <span>Scale 1:2,500</span>
-                  <span>•</span>
-                  <span>Lat: 26.892° N, Long: 76.331° E</span>
+              {/* Live Spatial HUD Metric Bar */}
+              <div className="absolute top-6 right-6 z-20 glass-card px-3 py-2 rounded-xl border border-outline-variant/50 text-[11px] font-mono shadow-lg flex items-center gap-3 backdrop-blur-md hidden sm:flex">
+                <div>
+                  <span className="text-emphasis">Parcels: </span>
+                  <span className="font-bold text-primary">{filteredParcels.length}</span>
                 </div>
+                <span>•</span>
+                <div>
+                  <span className="text-emphasis">RoW Extent: </span>
+                  <span className="font-bold text-secondary">
+                    {filteredParcels.reduce((acc, p) => acc + p.areaHa, 0).toFixed(1)} Ha
+                  </span>
+                </div>
+                <span>•</span>
+                <div>
+                  <span className="text-emphasis">Disputed: </span>
+                  <span className="font-bold text-danger">
+                    {filteredParcels.filter((p) => p.surveyStatus === "DISPUTED").length}
+                  </span>
+                </div>
+              </div>
+
+              {/* Dynamic Leaflet Cadastral Map */}
+              <div className="flex-1 w-full h-full min-h-[480px] rounded-xl overflow-hidden relative border border-outline-variant/30">
+                <DynamicCadastralMap
+                  parcels={filteredParcels}
+                  selectedParcel={selectedParcel}
+                  onSelectParcel={(p) => setSelectedParcel(p)}
+                  activeLayers={activeLayers}
+                />
               </div>
             </div>
 

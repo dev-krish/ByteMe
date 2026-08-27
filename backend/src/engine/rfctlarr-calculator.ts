@@ -78,8 +78,15 @@ export function computeRFCTLARRCompensation(
   const solatiumPct = input.solatiumPercentage ?? 100; // Statutory default: 100%
 
   // Step 1: Base Land Value = Market Rate × Area
-  // Section 26(1): "the market value as determined under section 26"
-  const baseLandValueLakhs = input.baseMarketRatePerHa * input.areaHa;
+  // Section 26(1): Market rate is HIGHEST of circle rate, 3-yr sale deeds avg, or specified rate
+  let effectiveMarketRate = input.baseMarketRatePerHa ?? 0;
+  if (input.circleRatePerHa !== undefined || input.saleDeedAvgRatePerHa !== undefined) {
+    const circle = input.circleRatePerHa ?? 0;
+    const saleDeed = input.saleDeedAvgRatePerHa ?? 0;
+    effectiveMarketRate = Math.max(circle, saleDeed, effectiveMarketRate);
+  }
+
+  const baseLandValueLakhs = effectiveMarketRate * input.areaHa;
 
   // Step 2: Rural Multiplier — Section 26(1)(b)
   const multiplierFactor = calculateRuralMultiplier(

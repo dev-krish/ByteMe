@@ -1,18 +1,28 @@
 import type { Metadata } from "next";
-import { Inter, JetBrains_Mono } from "next/font/google";
+import { Outfit, JetBrains_Mono, Playfair_Display } from "next/font/google";
 import "./globals.css";
 import "leaflet/dist/leaflet.css";
 
-const inter = Inter({
-  variable: "--font-inter",
+const outfit = Outfit({
+  variable: "--font-sans",
   subsets: ["latin"],
   display: "swap",
+  weight: ["300", "400", "500", "600", "700", "800"],
 });
 
 const jetbrainsMono = JetBrains_Mono({
-  variable: "--font-jetbrains-mono",
+  variable: "--font-mono",
   subsets: ["latin"],
   display: "swap",
+  weight: ["400", "500", "600", "700"],
+});
+
+const playfair = Playfair_Display({
+  variable: "--font-serif",
+  subsets: ["latin"],
+  display: "swap",
+  weight: ["400", "600", "700"],
+  style: ["normal", "italic"],
 });
 
 export const metadata: Metadata = {
@@ -29,7 +39,7 @@ export default function RootLayout({
   return (
     <html lang="en" className="light">
       <body
-        className={`${inter.variable} ${jetbrainsMono.variable} antialiased bg-background text-on-background min-h-screen flex flex-col`}
+        className={`${outfit.variable} ${jetbrainsMono.variable} ${playfair.variable} font-sans antialiased bg-background text-on-background min-h-screen flex flex-col`}
       >
         {children}
       </body>

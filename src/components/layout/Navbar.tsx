@@ -31,33 +31,33 @@ export default function Navbar() {
         {/* Brand & Seal */}
         <div className="flex items-center gap-6">
           <Link href="/" className="flex items-center gap-3 group">
-            <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center text-on-primary font-bold text-lg shadow-sm border border-primary-container">
+            <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center text-on-primary font-serif font-bold text-lg shadow-sm border border-primary-container group-hover:scale-105 transition-transform">
               NL
             </div>
             <div>
-              <div className="flex items-center gap-1.5">
-                <span className="font-bold text-xl tracking-tight text-primary font-sans">
+              <div className="flex items-center gap-2">
+                <span className="font-serif font-bold text-2xl tracking-tight text-primary group-hover:text-primary-container transition-colors">
                   NLAMS
                 </span>
-                <span className="text-[10px] font-mono uppercase bg-surface-container-high px-1.5 py-0.5 rounded text-emphasis font-semibold border border-outline-variant/50">
+                <span className="text-[10px] font-mono uppercase bg-surface-container-high px-2 py-0.5 rounded text-emphasis font-bold border border-outline-variant/40">
                   GOI Portal
                 </span>
               </div>
-              <p className="text-[11px] text-emphasis hidden sm:block">
+              <p className="text-[11px] font-sans font-medium text-emphasis hidden sm:block tracking-tight">
                 National Land Acquisition & Management System
               </p>
             </div>
           </Link>
 
           {/* Desktop Nav Links */}
-          <nav className="hidden lg:flex items-center gap-1 ml-4">
+          <nav className="hidden lg:flex items-center gap-1.5 ml-4">
             {navLinks.map((item) => {
               const isActive = pathname === item.href;
               return (
                 <Link
                   key={item.href}
                   href={item.href}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-mono uppercase tracking-wider transition-all ${
+                  className={`px-3.5 py-1.5 rounded-lg text-[13px] font-sans font-medium transition-all ${
                     isActive
                       ? "bg-primary text-white font-semibold shadow-sm"
                       : "text-emphasis hover:text-primary hover:bg-surface-container-high/60"
@@ -72,12 +72,6 @@ export default function Navbar() {
 
         {/* Right Action Icons & User Profile */}
         <div className="flex items-center gap-3">
-          {/* Live System Indicator */}
-          <div className="hidden md:flex items-center gap-2 px-3 py-1 rounded-full bg-surface-container-high/70 border border-outline-variant/40 text-[11px] font-mono text-emphasis">
-            <span className="w-2 h-2 rounded-full bg-success-green animate-pulse"></span>
-            <span>RFCTLARR-2013 Live Engine</span>
-          </div>
-
           {/* Notifications button */}
           <div className="relative">
             <button
@@ -131,17 +125,17 @@ export default function Navbar() {
           {/* User Sign In / Profile */}
           <Link
             href="/login"
-            className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-surface-container-high/80 hover:bg-surface-container-highest border border-outline-variant/40 transition-colors"
+            className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-surface-container-high/80 hover:bg-surface-container-highest border border-outline-variant/40 transition-colors shadow-sm"
           >
-            <div className="w-7 h-7 rounded-full bg-primary/15 text-primary flex items-center justify-center font-semibold text-xs border border-primary/30">
+            <div className="w-7 h-7 rounded-full bg-primary text-white flex items-center justify-center font-semibold text-xs shadow-sm">
               <ShieldCheck className="w-4 h-4" />
             </div>
             <div className="text-left hidden sm:block">
-              <div className="text-xs font-semibold text-on-surface leading-tight">
+              <div className="text-xs font-semibold text-on-surface leading-tight font-sans">
                 Officer Login
               </div>
-              <div className="text-[10px] font-mono text-emphasis">
-                CALA / e-Sign
+              <div className="text-[10px] font-sans text-emphasis">
+                NIC Parichay / DSC
               </div>
             </div>
           </Link>

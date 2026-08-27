@@ -27,21 +27,26 @@ export function calculateRuralMultiplier(isRural: boolean, distanceFromUrbanKm: 
 }
 
 export function computeRFCTLARRCompensation(input: CompensationInput): CompensationBreakdown {
-  const baseLandValueLakhs = (input.baseMarketRatePerHa * input.areaHa) / 100000; // Convert to Lakhs if rate in INR, or assume direct
-  // Normalized computation
-  const normalizedBaseValueLakhs = input.baseMarketRatePerHa * input.areaHa;
-  
-  const multiplierFactor = calculateRuralMultiplier(input.isRural, input.distanceFromUrbanKm);
-  const multipliedLandValueLakhs = normalizedBaseValueLakhs * multiplierFactor;
+  // Section 26(1): Market rate is HIGHEST of circle rate, 3-yr sale deeds avg, or specified rate
+  let effectiveMarketRate = input.baseMarketRatePerHa ?? 0;
+  if (input.circleRatePerHa !== undefined || input.saleDeedAvgRatePerHa !== undefined) {
+    const circle = input.circleRatePerHa ?? 0;
+    const saleDeed = input.saleDeedAvgRatePerHa ?? 0;
+    effectiveMarketRate = Math.max(circle, saleDeed, effectiveMarketRate);
+  }
 
-  // Assets (Structure, wells, trees)
+  const baseLandValueLakhs = effectiveMarketRate * input.areaHa;
+  const multiplierFactor = calculateRuralMultiplier(input.isRural, input.distanceFromUrbanKm);
+  const multipliedLandValueLakhs = baseLandValueLakhs * multiplierFactor;
+
+  // Assets (Structure, wells, trees) under Section 29
   const structureAndAssetsLakhs = (input.structureValuationLakhs || 0) + (input.treesCropsValuationLakhs || 0);
 
-  // Solatium = 100% of (Multiplied Land Value + Assets)
+  // Solatium = 100% of (Multiplied Land Value + Assets) under Section 30(1)
   const solatiumPercentage = input.solatiumPercentage ?? 100;
   const solatiumLakhs = (multipliedLandValueLakhs + structureAndAssetsLakhs) * (solatiumPercentage / 100);
 
-  // 12% p.a. interest on Market Value for duration (months / 12)
+  // 12% p.a. interest on Market Value for duration (months / 12) under Section 30(3)
   const interestYears = (input.interestMonths || 0) / 12;
   const interest12PctLakhs = multipliedLandValueLakhs * 0.12 * interestYears;
 
@@ -58,7 +63,7 @@ export function computeRFCTLARRCompensation(input: CompensationInput): Compensat
   };
 
   return {
-    baseLandValueLakhs: Number(normalizedBaseValueLakhs.toFixed(2)),
+    baseLandValueLakhs: Number(baseLandValueLakhs.toFixed(2)),
     multiplierFactor,
     multipliedLandValueLakhs: Number(multipliedLandValueLakhs.toFixed(2)),
     solatiumLakhs: Number(solatiumLakhs.toFixed(2)),

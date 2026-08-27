@@ -21,8 +21,13 @@ export default function Sidebar() {
   const menuItems = [
     {
       href: "/executive-dashboard",
-      label: "Executive Dashboard",
+      label: "Apex Command Matrix",
       icon: LayoutDashboard,
+    },
+    {
+      href: "/operations",
+      label: "Operations & Queue",
+      icon: UsersRound,
     },
     {
       href: "/workflow",

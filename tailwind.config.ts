@@ -3,7 +3,6 @@ import type { Config } from "tailwindcss";
 const config: Config = {
   darkMode: "class",
   content: [
-    "./src/pages/**/*.{js,ts,jsx,tsx,mdx}",
     "./src/components/**/*.{js,ts,jsx,tsx,mdx}",
     "./src/app/**/*.{js,ts,jsx,tsx,mdx}",
   ],
@@ -87,10 +86,11 @@ const config: Config = {
         "container-max": "1440px",
       },
       fontFamily: {
-        sans: ["Inter", "system-ui", "sans-serif"],
-        mono: ["JetBrains Mono", "monospace"],
-        "label-caps": ["JetBrains Mono", "monospace"],
-        "data-mono": ["JetBrains Mono", "monospace"],
+        sans: ["var(--font-sans)", "Outfit", "Plus Jakarta Sans", "Inter", "system-ui", "sans-serif"],
+        serif: ["var(--font-serif)", "Playfair Display", "Georgia", "serif"],
+        mono: ["var(--font-mono)", "JetBrains Mono", "monospace"],
+        "label-caps": ["var(--font-mono)", "JetBrains Mono", "monospace"],
+        "data-mono": ["var(--font-mono)", "JetBrains Mono", "monospace"],
       },
       backdropBlur: {
         xs: "2px",
