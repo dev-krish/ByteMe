@@ -1,5 +1,6 @@
 import { Router, Request, Response } from "express";
 import { generateReceipt } from "../services/receipt.service.js";
+import { authenticate } from "../middleware/auth.js";
 
 const router = Router();
 
@@ -7,9 +8,9 @@ const router = Router();
  * GET /api/receipts/:projectId
  * Generate a signed submission receipt with QR code.
  * QR payload contains: project code, total award, UTR numbers,
- * timestamp, and audit hash for offline verification.
+ * timestamp, and audit hash for offline verification. Authenticated.
  */
-router.get("/:projectId", async (req: Request, res: Response) => {
+router.get("/:projectId", authenticate, async (req: Request, res: Response) => {
   try {
     const result = await generateReceipt(String(req.params.projectId));
     res.json({ success: true, data: result });

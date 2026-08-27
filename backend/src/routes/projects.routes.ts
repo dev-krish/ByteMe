@@ -56,9 +56,9 @@ const createParcelSchema = z.object({
 
 /**
  * GET /api/projects
- * List/filter projects. Public (no auth required for demo).
+ * List/filter projects. Authenticated.
  */
-router.get("/", async (req: Request, res: Response) => {
+router.get("/", authenticate, async (req: Request, res: Response) => {
   try {
     const projects = await listProjects({
       status: req.query.status as string | undefined,
@@ -125,9 +125,9 @@ router.post(
 
 /**
  * GET /api/projects/:id
- * Full case dossier.
+ * Full case dossier. Authenticated.
  */
-router.get("/:id", async (req: Request, res: Response) => {
+router.get("/:id", authenticate, async (req: Request, res: Response) => {
   try {
     const project = await getProjectById(String(req.params.id));
     if (!project) {
@@ -166,9 +166,9 @@ router.post(
 
 /**
  * GET /api/projects/:id/workflow
- * Current stage + full history (milestones).
+ * Current stage + full history (milestones). Authenticated.
  */
-router.get("/:id/workflow", async (req: Request, res: Response) => {
+router.get("/:id/workflow", authenticate, async (req: Request, res: Response) => {
   try {
     const milestones = await getWorkflowHistory(String(req.params.id));
     res.json({ success: true, data: { milestones } });

@@ -7,7 +7,14 @@
 export interface AuditBlock {
   index: number;
   timestamp: string;
-  action: "STAGE_GAZETTED" | "DBT_DISBURSED" | "OBJECTION_RESOLVED" | "SURVEY_LOCKED" | "OFFICER_LOGIN";
+  action:
+    | "STAGE_GAZETTED"
+    | "DBT_DISBURSED"
+    | "OBJECTION_RESOLVED"
+    | "OBJECTION_FILED"
+    | "SURVEY_LOCKED"
+    | "OFFICER_LOGIN"
+    | "CITIZEN_LOGIN";
   caseRef: string;
   officerId: string;
   payloadHash: string;

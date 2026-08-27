@@ -28,9 +28,9 @@ const computeSchema = z.object({
  * Run RFCTLARR formula for a parcel.
  *
  * If `parcelId` is provided, persists the valuation to the database.
- * Otherwise, returns a calculation-only result (stateless).
+ * Otherwise, returns a calculation-only result (stateless). Authenticated.
  */
-router.post("/compute", async (req: Request, res: Response) => {
+router.post("/compute", authenticate, async (req: Request, res: Response) => {
   try {
     const body = computeSchema.parse(req.body);
     const { parcelId, ...input } = body;

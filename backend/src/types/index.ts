@@ -14,6 +14,11 @@ export interface LoginRequest {
   dscChallenge?: string; // Simulated DSC token for e-Sign auth
 }
 
+export interface CitizenLoginRequest {
+  identifier: string; // Aadhaar or Mobile number or email
+  otp?: string;
+}
+
 export interface LoginResponse {
   token: string;
   user: {
@@ -22,6 +27,7 @@ export interface LoginResponse {
     email: string;
     role: UserRole;
     agency: string | null;
+    aadhaarLinked?: boolean;
   };
 }
 

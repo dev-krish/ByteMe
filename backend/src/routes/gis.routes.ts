@@ -7,6 +7,7 @@ import {
   toGeoJSON,
 } from "../services/parcel.service.js";
 import { prisma } from "../config/database.js";
+import { authenticate } from "../middleware/auth.js";
 
 const router = Router();
 
@@ -17,9 +18,9 @@ const router = Router();
  *   ?q=searchTerm                       → text search (khasra/owner/village)
  *   ?village=name                       → filter by village
  *
- * Returns GeoJSON FeatureCollection.
+ * Returns GeoJSON FeatureCollection. Authenticated.
  */
-router.get("/parcels", async (req: Request, res: Response) => {
+router.get("/parcels", authenticate, async (req: Request, res: Response) => {
   try {
     const { bbox, q, village, khasra } = req.query;
 
@@ -62,7 +63,7 @@ router.get("/parcels", async (req: Request, res: Response) => {
  * GET /api/gis/parcels/:id/row-buffer
  * Compute 60m Right-of-Way buffer via PostGIS ST_Buffer.
  */
-router.get("/parcels/:id/row-buffer", async (req: Request, res: Response) => {
+router.get("/parcels/:id/row-buffer", authenticate, async (req: Request, res: Response) => {
   try {
     const buffer = await computeRoWBuffer(String(req.params.id));
     if (!buffer) {
@@ -87,7 +88,7 @@ router.get("/parcels/:id/row-buffer", async (req: Request, res: Response) => {
  * GET /api/gis/parcels/:id/litigation
  * Title/litigation status check.
  */
-router.get("/parcels/:id/litigation", async (req: Request, res: Response) => {
+router.get("/parcels/:id/litigation", authenticate, async (req: Request, res: Response) => {
   try {
     const result = await getParcelLitigation(String(req.params.id));
     if (!result) {

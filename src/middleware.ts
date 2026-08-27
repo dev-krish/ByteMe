@@ -1,22 +1,32 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { verifySession } from "./lib/security/token";
 
-// Routes that strictly require officer authentication
-const PROTECTED_ROUTES = [
+// Public routes that do not require authentication
+const PUBLIC_ROUTES = ["/login", "/api/auth", "/unauthorized"];
+
+// Officer-only administrative modules
+const OFFICER_ONLY_ROUTES = ["/acquisitions/new", "/operations", "/executive-dashboard"];
+
+// Gated routes requiring authentication
+const GATED_ROUTES = [
   "/executive-dashboard",
   "/workflow",
-  "/acquisitions/new",
-  "/operations",
+  "/gis-map",
   "/compensation",
+  "/operations",
+  "/acquisitions/new",
+  "/thank-you",
+  "/citizen-portal",
 ];
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // Check if current route is protected
-  const isProtected = PROTECTED_ROUTES.some((route) =>
-    pathname.startsWith(route)
-  );
+  // Allow root landing page and public auth endpoints
+  const isPublic = pathname === "/" || PUBLIC_ROUTES.some((route) => pathname.startsWith(route));
+
+  // Determine if current route is gated
+  const isGated = GATED_ROUTES.some((route) => pathname.startsWith(route));
 
   const sessionCookie = request.cookies.get("nlams_session")?.value;
   let session = null;
@@ -25,12 +35,20 @@ export async function middleware(request: NextRequest) {
     session = await verifySession(sessionCookie);
   }
 
-  // If user tries to access protected page without valid session, redirect to login
-  if (isProtected && !session) {
+  // 1. If user tries to access a gated route without a valid session -> redirect to /login
+  if (isGated && !session) {
     const loginUrl = new URL("/login", request.url);
     loginUrl.searchParams.set("redirect", pathname);
     loginUrl.searchParams.set("reason", "auth_required");
     return NextResponse.redirect(loginUrl);
+  }
+
+  // 2. If a citizen tries to access officer-only administrative routes -> restrict and show explanation page
+  if (session && session.role === "CITIZEN" && OFFICER_ONLY_ROUTES.some((route) => pathname.startsWith(route))) {
+    const unauthorizedUrl = new URL("/unauthorized", request.url);
+    unauthorizedUrl.searchParams.set("attemptedPath", pathname);
+    unauthorizedUrl.searchParams.set("reason", "officer_clearance_required");
+    return NextResponse.redirect(unauthorizedUrl);
   }
 
   // Create response and attach OWASP Security Headers

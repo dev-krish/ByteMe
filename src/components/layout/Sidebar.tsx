@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import {
   LayoutDashboard,
   GitFork,
@@ -13,38 +13,93 @@ import {
   LogOut,
   FileCheck2,
   AlertTriangle,
+  UserCheck,
 } from "lucide-react";
+import { useState, useEffect } from "react";
 
 export default function Sidebar() {
   const pathname = usePathname();
+  const router = useRouter();
+  const [userRole, setUserRole] = useState<string | null>(null);
 
-  const menuItems = [
-    {
-      href: "/executive-dashboard",
-      label: "Apex Command Matrix",
-      icon: LayoutDashboard,
-    },
-    {
-      href: "/operations",
-      label: "Operations & Queue",
-      icon: UsersRound,
-    },
-    {
-      href: "/workflow",
-      label: "Workflow Tracker",
-      icon: GitFork,
-    },
-    {
-      href: "/gis-map",
-      label: "GIS Cadastral Map",
-      icon: MapPin,
-    },
-    {
-      href: "/compensation",
-      label: "Compensation & R&R",
-      icon: CircleDollarSign,
-    },
-  ];
+  useEffect(() => {
+    async function getSession() {
+      try {
+        const res = await fetch("/api/auth/me");
+        if (res.ok) {
+          const data = await res.json();
+          if (data.authenticated && data.user) {
+            setUserRole(data.user.role || data.user.userType);
+          }
+        }
+      } catch {
+        // Ignore
+      }
+    }
+    getSession();
+  }, [pathname]);
+
+  const handleLogout = async () => {
+    try {
+      await fetch("/api/auth/logout", { method: "POST" });
+      router.push("/login");
+    } catch {
+      router.push("/login");
+    }
+  };
+
+  const isCitizen = userRole === "CITIZEN";
+
+  const menuItems = isCitizen
+    ? [
+        {
+          href: "/citizen-portal",
+          label: "My Land & Awards",
+          icon: UserCheck,
+        },
+        {
+          href: "/workflow",
+          label: "Workflow Tracker",
+          icon: GitFork,
+        },
+        {
+          href: "/gis-map",
+          label: "GIS Cadastral Map",
+          icon: MapPin,
+        },
+        {
+          href: "/compensation",
+          label: "Compensation & R&R",
+          icon: CircleDollarSign,
+        },
+      ]
+    : [
+        {
+          href: "/executive-dashboard",
+          label: "Apex Command Matrix",
+          icon: LayoutDashboard,
+        },
+        {
+          href: "/operations",
+          label: "Operations & Queue",
+          icon: UsersRound,
+        },
+        {
+          href: "/workflow",
+          label: "Workflow Tracker",
+          icon: GitFork,
+        },
+        {
+          href: "/gis-map",
+          label: "GIS Cadastral Map",
+          icon: MapPin,
+        },
+        {
+          href: "/compensation",
+          label: "Compensation & R&R",
+          icon: CircleDollarSign,
+        },
+      ];
 
   return (
     <aside className="w-[280px] shrink-0 min-h-[calc(100vh-65px)] bg-glass-surface backdrop-blur-2xl border-r border-outline-variant/30 flex flex-col p-4 shadow-sm hidden md:flex">
@@ -59,25 +114,27 @@ export default function Sidebar() {
               NLAMS Core
             </h2>
             <p className="text-[10px] font-mono text-emphasis uppercase tracking-wider">
-              Department of Land Resources
+              {isCitizen ? "Citizen Landowner Desk" : "Department of Land Resources"}
             </p>
           </div>
         </div>
       </div>
 
       {/* Primary CTA */}
-      <Link
-        href="/acquisitions/new"
-        className="w-full bg-primary hover:bg-primary/90 text-white font-mono text-xs uppercase tracking-wider py-3 px-4 rounded-lg shadow-sm transition-all flex items-center justify-center gap-2 mb-6"
-      >
-        <PlusCircle className="w-4 h-4" />
-        <span>New Acquisition</span>
-      </Link>
+      {!isCitizen && (
+        <Link
+          href="/acquisitions/new"
+          className="w-full bg-primary hover:bg-primary/90 text-white font-mono text-xs uppercase tracking-wider py-3 px-4 rounded-lg shadow-sm transition-all flex items-center justify-center gap-2 mb-6"
+        >
+          <PlusCircle className="w-4 h-4" />
+          <span>New Acquisition</span>
+        </Link>
+      )}
 
       {/* Nav List */}
       <nav className="flex-1 space-y-1.5">
         <div className="px-3 py-1 text-[10px] font-mono uppercase tracking-widest text-emphasis/80 font-bold">
-          Operational Modules
+          {isCitizen ? "Citizen Services" : "Operational Modules"}
         </div>
         {menuItems.map((item) => {
           const Icon = item.icon;
@@ -126,13 +183,13 @@ export default function Sidebar() {
           <FileCheck2 className="w-4 h-4" />
           <span>Case Receipts & Acks</span>
         </Link>
-        <Link
-          href="/login"
-          className="flex items-center gap-3 px-3.5 py-2 rounded-lg text-xs font-mono text-emphasis hover:text-danger hover:bg-danger/10 transition-colors"
+        <button
+          onClick={handleLogout}
+          className="w-full flex items-center gap-3 px-3.5 py-2 rounded-lg text-xs font-mono text-emphasis hover:text-danger hover:bg-danger/10 transition-colors cursor-pointer text-left"
         >
           <LogOut className="w-4 h-4" />
-          <span>Officer Sign Out</span>
-        </Link>
+          <span>Sign Out</span>
+        </button>
       </div>
     </aside>
   );

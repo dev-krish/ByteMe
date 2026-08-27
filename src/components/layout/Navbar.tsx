@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import {
   Bell,
   Search,
@@ -9,28 +9,99 @@ import {
   Building2,
   Menu,
   X,
+  UserCheck,
+  User,
+  LogOut,
+  Sparkles,
 } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+
+interface AuthUser {
+  userId: string;
+  name: string;
+  email: string;
+  role: string;
+  userType: "OFFICER" | "CITIZEN";
+  department?: string;
+  khasraNo?: string;
+  aadhaarLast4?: string;
+}
 
 export default function Navbar() {
   const pathname = usePathname();
+  const router = useRouter();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [notificationOpen, setNotificationOpen] = useState(false);
+  const [user, setUser] = useState<AuthUser | null>(null);
 
-  const navLinks = [
+  useEffect(() => {
+    async function checkAuth() {
+      try {
+        const res = await fetch("/api/auth/me");
+        if (res.ok) {
+          const data = await res.json();
+          if (data.authenticated && data.user) {
+            setUser(data.user);
+          } else {
+            setUser(null);
+          }
+        } else {
+          setUser(null);
+        }
+      } catch {
+        setUser(null);
+      }
+    }
+    checkAuth();
+  }, [pathname]);
+
+  const handleLogout = async () => {
+    try {
+      await fetch("/api/auth/logout", { method: "POST" });
+      setUser(null);
+      router.push("/login");
+    } catch {
+      router.push("/login");
+    }
+  };
+
+  const isCitizen = user?.userType === "CITIZEN" || user?.role === "CITIZEN";
+
+  const officerNavLinks = [
     { href: "/executive-dashboard", label: "Executive Overview" },
+    { href: "/operations", label: "Operations Queue" },
     { href: "/workflow", label: "Workflow Tracker" },
     { href: "/gis-map", label: "GIS Cadastral Map" },
     { href: "/compensation", label: "Compensation & R&R" },
     { href: "/acquisitions/new", label: "New Project" },
   ];
 
+  const citizenNavLinks = [
+    { href: "/citizen-portal", label: "My Land Records & Awards" },
+    { href: "/workflow", label: "Workflow Tracker" },
+    { href: "/gis-map", label: "GIS Cadastral Map" },
+    { href: "/compensation", label: "Compensation Calculator" },
+    { href: "/thank-you", label: "Statutory e-Receipt" },
+  ];
+
+  const publicNavLinks = [
+    { href: "/", label: "Home" },
+    { href: "/login", label: "Citizen Login" },
+    { href: "/login?redirect=/executive-dashboard", label: "Officer Portal" },
+  ];
+
+  const navLinks = user
+    ? isCitizen
+      ? citizenNavLinks
+      : officerNavLinks
+    : publicNavLinks;
+
   return (
     <header className="sticky top-0 left-0 w-full z-50 bg-[#fdf6e3]/85 backdrop-blur-xl border-b border-outline-variant/40 shadow-sm">
-      <div className="max-w-[1440px] mx-auto px-4 md:px-8 py-3 flex items-center justify-between">
-        {/* Brand & Seal */}
-        <div className="flex items-center gap-6">
-          <Link href="/" className="flex items-center gap-3 group">
+      <div className="max-w-[1440px] mx-auto px-4 md:px-8 py-3 flex items-center justify-between gap-4">
+        {/* Left: Brand & Seal */}
+        <div className="flex items-center shrink-0">
+          <Link href={user ? (isCitizen ? "/citizen-portal" : "/executive-dashboard") : "/"} className="flex items-center gap-3 group">
             <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center text-on-primary font-serif font-bold text-lg shadow-sm border border-primary-container group-hover:scale-105 transition-transform">
               NL
             </div>
@@ -48,30 +119,30 @@ export default function Navbar() {
               </p>
             </div>
           </Link>
-
-          {/* Desktop Nav Links */}
-          <nav className="hidden lg:flex items-center gap-1.5 ml-4">
-            {navLinks.map((item) => {
-              const isActive = pathname === item.href;
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className={`px-3.5 py-1.5 rounded-lg text-[13px] font-sans font-medium transition-all ${
-                    isActive
-                      ? "bg-primary text-white font-semibold shadow-sm"
-                      : "text-emphasis hover:text-primary hover:bg-surface-container-high/60"
-                  }`}
-                >
-                  {item.label}
-                </Link>
-              );
-            })}
-          </nav>
         </div>
 
+        {/* Center: Desktop Nav Links */}
+        <nav className="hidden lg:flex items-center justify-center gap-1.5 flex-1 mx-4">
+          {navLinks.map((item) => {
+            const isActive = pathname === item.href;
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={`px-3.5 py-1.5 rounded-lg text-[13px] font-sans font-medium transition-all ${
+                  isActive
+                    ? "bg-primary text-white font-semibold shadow-sm"
+                    : "text-emphasis hover:text-primary hover:bg-surface-container-high/60"
+                }`}
+              >
+                {item.label}
+              </Link>
+            );
+          })}
+        </nav>
+
         {/* Right Action Icons & User Profile */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 shrink-0">
           {/* Notifications button */}
           <div className="relative">
             <button
@@ -122,23 +193,59 @@ export default function Navbar() {
             )}
           </div>
 
-          {/* User Sign In / Profile */}
-          <Link
-            href="/login"
-            className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-surface-container-high/80 hover:bg-surface-container-highest border border-outline-variant/40 transition-colors shadow-sm"
-          >
-            <div className="w-7 h-7 rounded-full bg-primary text-white flex items-center justify-center font-semibold text-xs shadow-sm">
-              <ShieldCheck className="w-4 h-4" />
+          {/* User Sign In / Active Session Profile */}
+          {user ? (
+            <div className="flex items-center gap-2">
+              <Link
+                href={isCitizen ? "/citizen-portal" : "/executive-dashboard"}
+                className={`flex items-center gap-2 px-3 py-1.5 rounded-xl border transition-colors shadow-sm ${
+                  isCitizen
+                    ? "bg-emerald-500/10 hover:bg-emerald-500/20 border-emerald-500/40 text-emerald-900"
+                    : "bg-surface-container-high/80 hover:bg-surface-container-highest border-outline-variant/40"
+                }`}
+              >
+                <div
+                  className={`w-7 h-7 rounded-full text-white flex items-center justify-center font-semibold text-xs shadow-sm ${
+                    isCitizen ? "bg-emerald-700" : "bg-primary"
+                  }`}
+                >
+                  {isCitizen ? (
+                    <UserCheck className="w-4 h-4" />
+                  ) : (
+                    <ShieldCheck className="w-4 h-4" />
+                  )}
+                </div>
+                <div className="text-left hidden sm:block">
+                  <div className="text-xs font-semibold leading-tight font-sans text-on-surface">
+                    {user.name.split(" ")[0]} {user.name.split(" ")[1] || ""}
+                  </div>
+                  <div className="text-[10px] font-sans text-emphasis">
+                    {isCitizen
+                      ? `Citizen (•••• ${user.aadhaarLast4 || "4291"})`
+                      : user.role.replace("_", " ")}
+                  </div>
+                </div>
+              </Link>
+
+              <button
+                onClick={handleLogout}
+                title="Sign Out"
+                className="p-2 rounded-xl text-emphasis hover:text-danger hover:bg-danger/10 border border-outline-variant/30 transition-colors"
+              >
+                <LogOut className="w-4 h-4" />
+              </button>
             </div>
-            <div className="text-left hidden sm:block">
-              <div className="text-xs font-semibold text-on-surface leading-tight font-sans">
-                Officer Login
-              </div>
-              <div className="text-[10px] font-sans text-emphasis">
-                NIC Parichay / DSC
-              </div>
-            </div>
-          </Link>
+          ) : (
+            <Link
+              href="/login"
+              className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-primary hover:bg-primary/90 text-white transition-colors shadow-sm"
+            >
+              <User className="w-4 h-4" />
+              <span className="text-xs font-semibold font-sans">
+                Sign In / Login
+              </span>
+            </Link>
+          )}
 
           {/* Mobile hamburger toggle */}
           <button
@@ -168,6 +275,18 @@ export default function Navbar() {
                 {item.label}
               </Link>
             ))}
+            {user && (
+              <button
+                onClick={() => {
+                  setMobileMenuOpen(false);
+                  handleLogout();
+                }}
+                className="px-4 py-2.5 rounded-lg text-xs font-mono uppercase tracking-wider text-danger hover:bg-danger/10 text-left flex items-center gap-2"
+              >
+                <LogOut className="w-4 h-4" />
+                <span>Sign Out</span>
+              </button>
+            )}
           </div>
         </div>
       )}

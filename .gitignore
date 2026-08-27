@@ -16,6 +16,8 @@ backend/node_modules/
 # production build
 /build
 /dist
+backend/dist/
+**/.vite/
 
 # debug & logs
 *.log

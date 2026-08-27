@@ -1,14 +1,15 @@
 import { Router, Request, Response } from "express";
 import { prisma } from "../config/database.js";
+import { authenticate } from "../middleware/auth.js";
 
 const router = Router();
 
 /**
  * GET /api/dashboard/summary
  * National KPIs: active projects, area acquired, DBT total, SLA compliance %.
- * All values computed from real DB aggregates.
+ * Gated with JWT authentication.
  */
-router.get("/summary", async (_req: Request, res: Response) => {
+router.get("/summary", authenticate, async (_req: Request, res: Response) => {
   try {
     // Total and active projects
     const totalProjects = await prisma.project.count();

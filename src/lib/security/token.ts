@@ -17,15 +17,33 @@ function bufToHex(buffer: ArrayBuffer): string {
     .join("");
 }
 
-export interface OfficerSession {
+export type UserRole =
+  | "CALA_OFFICER"
+  | "DIRECTOR_GENERAL"
+  | "SURVEYOR"
+  | "FINANCE_OFFICER"
+  | "CITIZEN"
+  | "ADMINISTRATOR"
+  | "MINISTRY";
+
+export interface UserSession {
   userId: string;
   name: string;
   email: string;
-  role: "CALA_OFFICER" | "DIRECTOR_GENERAL" | "SURVEYOR" | "FINANCE_OFFICER";
-  department: string;
-  state: string;
+  role: UserRole;
+  userType: "OFFICER" | "CITIZEN";
+  department?: string;
+  state?: string;
+  district?: string;
+  village?: string;
+  khasraNo?: string;
+  aadhaarLast4?: string;
+  phone?: string;
   exp: number; // Expiry timestamp
 }
+
+// Backward compatibility alias
+export type OfficerSession = UserSession;
 
 /**
  * Sign payload using HMAC-SHA256

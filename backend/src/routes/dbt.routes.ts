@@ -54,9 +54,9 @@ router.post(
 
 /**
  * GET /api/dbt/:id/status
- * Poll disbursement status.
+ * Poll disbursement status. Authenticated.
  */
-router.get("/:id/status", async (req: Request, res: Response) => {
+router.get("/:id/status", authenticate, async (req: Request, res: Response) => {
   try {
     const transaction = await getDBTStatus(String(req.params.id));
     if (!transaction) {

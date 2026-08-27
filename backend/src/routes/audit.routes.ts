@@ -1,14 +1,15 @@
 import { Router, Request, Response } from "express";
 import { getAuditChain } from "../services/audit.service.js";
+import { authenticate } from "../middleware/auth.js";
 
 const router = Router();
 
 /**
  * GET /api/audit/:entityType/:entityId
  * Hash-chained audit trail for an entity.
- * Returns ordered chain with per-entry hash verification.
+ * Returns ordered chain with per-entry hash verification. Authenticated.
  */
-router.get("/:entityType/:entityId", async (req: Request, res: Response) => {
+router.get("/:entityType/:entityId", authenticate, async (req: Request, res: Response) => {
   try {
     const entityType = String(req.params.entityType);
     const entityId = String(req.params.entityId);
