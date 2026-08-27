@@ -84,7 +84,7 @@ router.post("/citizen-login", async (req: Request, res: Response) => {
 router.post("/send-otp", async (req: Request, res: Response) => {
   try {
     const { identifier, channel } = otpSchema.parse(req.body);
-    const result = sendOtp(identifier, channel);
+    const result = await sendOtp(identifier, channel);
 
     res.json(result);
   } catch (error: any) {

@@ -12,6 +12,11 @@ const envSchema = z.object({
   PORT: z.coerce.number().default(4000),
   NODE_ENV: z.enum(["development", "production", "test"]).default("development"),
   CORS_ORIGINS: z.string().default("http://localhost:3000,https://byteme-opal.vercel.app"),
+  SMTP_HOST: z.string().default("smtp.gmail.com"),
+  SMTP_PORT: z.coerce.number().default(587),
+  SMTP_USER: z.string().optional(),
+  SMTP_PASS: z.string().optional(),
+  EMAIL_FROM: z.string().default("NLAMS Landowner Portal <no-reply@nlams.gov.in>"),
 });
 
 function validateEnv() {

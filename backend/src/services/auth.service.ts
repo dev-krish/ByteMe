@@ -16,6 +16,8 @@ import type {
 
 const OTP_CACHE = new Map<string, { otp: string; expiresAt: number }>();
 
+import { sendVerificationEmail } from "./email.service.js";
+
 /**
  * Mask email address for privacy in verification notices (e.g., r***@domain.com)
  */
@@ -29,16 +31,32 @@ function maskEmail(email: string): string {
 /**
  * Dispatch OTP for Aadhaar, Mobile, or Registered Email
  */
-export function sendOtp(
+export async function sendOtp(
   identifier: string,
-  channel: "AADHAAR" | "EMAIL" = identifier.includes("@") ? "EMAIL" : "AADHAAR"
-): { success: boolean; message: string; demoOtp: string; channel: "AADHAAR" | "EMAIL" } {
+  channel: "AADHAAR" | "EMAIL" = identifier.includes("@") ? "EMAIL" : "AADHAAR",
+  recipientName?: string
+): Promise<{
+  success: boolean;
+  message: string;
+  demoOtp: string;
+  channel: "AADHAAR" | "EMAIL";
+  emailSent?: boolean;
+}> {
   const clean = identifier.replace(/[\s-]/g, "").toLowerCase();
-  const demoOtp = "123456";
+  
+  // Generate a random 6-digit OTP code (master demo OTP 123456 also remains supported for demo convenience)
+  const dynamicOtp = Math.floor(100000 + Math.random() * 900000).toString();
+  
   OTP_CACHE.set(clean, {
-    otp: demoOtp,
+    otp: dynamicOtp,
     expiresAt: Date.now() + 5 * 60 * 1000,
   });
+
+  let emailSent = false;
+  if (channel === "EMAIL") {
+    const result = await sendVerificationEmail(identifier, dynamicOtp, recipientName || "Landowner Citizen");
+    emailSent = result.sent;
+  }
 
   const message =
     channel === "EMAIL"
@@ -48,8 +66,9 @@ export function sendOtp(
   return {
     success: true,
     message,
-    demoOtp,
+    demoOtp: dynamicOtp,
     channel,
+    emailSent,
   };
 }
 
