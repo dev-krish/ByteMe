@@ -3,6 +3,7 @@ import jwt from "jsonwebtoken";
 import { prisma } from "../config/database.js";
 import { env } from "../config/env.js";
 import type {
+  RegisterRequest,
   LoginRequest,
   CitizenLoginRequest,
   LoginResponse,
@@ -10,7 +11,7 @@ import type {
 } from "../types/index.js";
 
 /**
- * Auth Service — JWT-based authentication with simulated DSC and UIDAI OTP.
+ * Auth Service — JWT-based authentication with simulated DSC, email/password, and UIDAI OTP.
  * Supports RBAC tiers (CITIZEN → SURVEYOR → CALA → ADMINISTRATOR → MINISTRY).
  */
 
@@ -157,8 +158,63 @@ export async function loginUser(input: LoginRequest): Promise<LoginResponse> {
 }
 
 /**
+ * Register a new user with Email + Password and optional Role (CITIZEN, SURVEYOR, CALA, etc.)
+ */
+export async function registerUser(input: RegisterRequest): Promise<LoginResponse> {
+  const normalizedEmail = input.email.trim().toLowerCase();
+
+  // Check if user already exists
+  const existingUser = await prisma.user.findUnique({
+    where: { email: normalizedEmail },
+  });
+
+  if (existingUser) {
+    throw new Error("An account with this email address already exists.");
+  }
+
+  // Hash password
+  const passwordHash = await hashPassword(input.password);
+
+  // Create new user in PostgreSQL database
+  const user = await prisma.user.create({
+    data: {
+      name: input.name.trim(),
+      email: normalizedEmail,
+      passwordHash,
+      role: input.role || "CITIZEN",
+      agency: input.agency?.trim() || (input.role === "CITIZEN" ? "Landowner" : "State Revenue Dept"),
+      designation: input.designation?.trim() || (input.role === "CITIZEN" ? "Landowner" : "Officer"),
+      aadhaarLinked: input.role === "CITIZEN",
+    },
+  });
+
+  const payload: JwtPayload = {
+    userId: user.id,
+    role: user.role,
+    email: user.email,
+  };
+
+  const token = jwt.sign(payload, env.JWT_SECRET, {
+    expiresIn: env.JWT_EXPIRES_IN as any,
+  });
+
+  return {
+    token,
+    user: {
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      agency: user.agency,
+      aadhaarLinked: user.aadhaarLinked,
+    },
+  };
+}
+
+/**
  * Hash a password for storage.
  */
 export async function hashPassword(password: string): Promise<string> {
   return bcrypt.hash(password, 12);
 }
+

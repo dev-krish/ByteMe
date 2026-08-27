@@ -14,7 +14,8 @@ export interface AuditBlock {
     | "OBJECTION_FILED"
     | "SURVEY_LOCKED"
     | "OFFICER_LOGIN"
-    | "CITIZEN_LOGIN";
+    | "CITIZEN_LOGIN"
+    | "USER_REGISTRATION";
   caseRef: string;
   officerId: string;
   payloadHash: string;

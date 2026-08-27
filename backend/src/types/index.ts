@@ -8,6 +8,16 @@ import type { UserRole } from "@prisma/client";
 
 // ── Auth ──
 
+export interface RegisterRequest {
+  name: string;
+  email: string;
+  password: string;
+  role?: UserRole;
+  phone?: string;
+  agency?: string;
+  designation?: string;
+}
+
 export interface LoginRequest {
   email: string;
   password: string;

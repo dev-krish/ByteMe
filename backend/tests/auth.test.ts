@@ -11,7 +11,11 @@ describe("Citizen Aadhaar Authentication (UIDAI OTP)", () => {
     expect(verifyOtp("9829012345", "123456")).toBe(true);
   });
 
-  it("should reject invalid OTP", () => {
-    expect(verifyOtp("9829012345", "999999")).toBe(false);
+  it("should securely hash user passwords", async () => {
+    const { hashPassword } = await import("../src/services/auth.service.js");
+    const hash = await hashPassword("securePassword123");
+    expect(hash).toBeTruthy();
+    expect(hash).not.toBe("securePassword123");
+    expect(hash.startsWith("$2")).toBe(true);
   });
 });

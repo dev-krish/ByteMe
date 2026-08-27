@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
-import { signSession, OfficerSession } from "@/lib/security/token";
+import { signSession, OfficerSession, UserSession } from "@/lib/security/token";
 import { appendAuditRecord } from "@/lib/security/audit";
+import { REGISTERED_USERS_STORE } from "@/lib/auth-store";
 
 // Verified Officer Accounts Directory
 const VERIFIED_OFFICERS: Record<
@@ -78,20 +79,36 @@ export async function POST(request: Request) {
 
     const cleanEmail = email.trim().toLowerCase();
     const match = VERIFIED_OFFICERS[cleanEmail];
+    const registered = REGISTERED_USERS_STORE.get(cleanEmail);
 
-    if (!match || match.pass !== password) {
+    let sessionPayload: UserSession;
+
+    if (match && match.pass === password) {
+      sessionPayload = {
+        ...match.officer,
+        exp: Date.now() + 8 * 60 * 60 * 1000,
+      };
+    } else if (registered && registered.passwordHash === password) {
+      sessionPayload = {
+        userId: `USER-${cleanEmail.slice(0, 4).toUpperCase()}`,
+        name: registered.name,
+        email: registered.email,
+        role: registered.role,
+        userType: registered.role === "CITIZEN" ? "CITIZEN" : "OFFICER",
+        department: registered.department,
+        state: registered.state,
+        phone: registered.phone,
+        khasraNo: registered.khasraNo,
+        village: registered.village,
+        district: registered.district,
+        exp: Date.now() + 8 * 60 * 60 * 1000,
+      };
+    } else {
       return NextResponse.json(
-        { error: "Invalid officer credentials or unverified Gov SSO email." },
+        { error: "Invalid credentials. Please check your email and password." },
         { status: 401 }
       );
     }
-
-    // 8-hour session expiry
-    const exp = Date.now() + 8 * 60 * 60 * 1000;
-    const sessionPayload: OfficerSession = {
-      ...match.officer,
-      exp,
-    };
 
     const token = await signSession(sessionPayload);
 

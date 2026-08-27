@@ -1,6 +1,7 @@
 import { Router, Request, Response } from "express";
 import { z } from "zod";
 import {
+  registerUser,
   loginUser,
   loginCitizen,
   sendOtp,
@@ -11,10 +12,43 @@ import { prisma } from "../config/database.js";
 
 const router = Router();
 
+const registerSchema = z.object({
+  name: z.string().min(2, "Name must be at least 2 characters"),
+  email: z.string().email("Invalid email address"),
+  password: z.string().min(6, "Password must be at least 6 characters"),
+  role: z.enum(["CITIZEN", "SURVEYOR", "CALA", "ADMINISTRATOR", "MINISTRY"]).optional(),
+  phone: z.string().optional(),
+  agency: z.string().optional(),
+  designation: z.string().optional(),
+});
+
 const loginSchema = z.object({
   email: z.string().email(),
   password: z.string().min(1),
   dscChallenge: z.string().optional(),
+});
+
+/**
+ * POST /api/auth/register
+ * Email + Password account registration
+ */
+router.post("/register", async (req: Request, res: Response) => {
+  try {
+    const body = registerSchema.parse(req.body);
+    const result = await registerUser(body);
+
+    res.status(201).json({
+      success: true,
+      message: "Account registered successfully.",
+      data: result,
+    });
+  } catch (error: any) {
+    const status = error.message?.includes("already exists") ? 409 : 400;
+    res.status(status).json({
+      success: false,
+      error: error.message || "Registration failed.",
+    });
+  }
 });
 
 const citizenLoginSchema = z.object({

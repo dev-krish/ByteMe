@@ -22,6 +22,9 @@ import {
   Landmark,
   UserCheck,
   CheckCircle2,
+  UserPlus,
+  LogIn,
+  Mail,
 } from "lucide-react";
 
 function LoginForm() {
@@ -30,8 +33,19 @@ function LoginForm() {
   const redirectTarget = searchParams.get("redirect");
   const authReason = searchParams.get("reason");
 
-  // Portal Mode: "CITIZEN" or "OFFICER"
+  // Auth Type: "SIGN_IN" or "SIGN_UP"
+  const [authType, setAuthType] = useState<"SIGN_IN" | "SIGN_UP">("SIGN_IN");
+
+  // Portal Mode for Sign In: "CITIZEN" or "OFFICER"
   const [authMode, setAuthMode] = useState<"CITIZEN" | "OFFICER">("CITIZEN");
+
+  // Registration Form States
+  const [regName, setRegName] = useState("");
+  const [regEmail, setRegEmail] = useState("");
+  const [regPassword, setRegPassword] = useState("");
+  const [regConfirmPassword, setRegConfirmPassword] = useState("");
+  const [regRole, setRegRole] = useState<"CITIZEN" | "CALA_OFFICER" | "SURVEYOR">("CITIZEN");
+  const [regPhone, setRegPhone] = useState("");
 
   // Officer Form States
   const [officerEmail, setOfficerEmail] = useState("cala.dausa@gov.in");
@@ -233,6 +247,55 @@ function LoginForm() {
     }
   };
 
+  // 5. User Registration (Sign Up)
+  const handleRegister = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (regPassword !== regConfirmPassword) {
+      setErrorMsg("Passwords do not match. Please re-enter.");
+      return;
+    }
+    if (regPassword.length < 6) {
+      setErrorMsg("Password must be at least 6 characters long.");
+      return;
+    }
+
+    setLoading(true);
+    setErrorMsg(null);
+    setSuccessMsg(null);
+
+    try {
+      const res = await fetch("/api/auth/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: regName,
+          email: regEmail,
+          password: regPassword,
+          role: regRole,
+          phone: regPhone,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        setErrorMsg(data.error || "Registration failed.");
+        setLoading(false);
+        return;
+      }
+
+      setSuccessMsg("Account created successfully! Redirecting...");
+      setTimeout(() => {
+        router.push(
+          redirectTarget || (regRole === "CITIZEN" ? "/citizen-portal" : "/executive-dashboard")
+        );
+      }, 700);
+    } catch {
+      setErrorMsg("Network error connecting to registration service.");
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background text-on-background flex flex-col justify-between p-4 md:p-8 font-sans">
       {/* Top minimal header */}
@@ -252,62 +315,105 @@ function LoginForm() {
       {/* Main Login Card */}
       <main className="w-full max-w-xl mx-auto my-auto py-6">
         {/* Seal and Title */}
-        <div className="text-center mb-6">
+        <div className="text-center mb-5">
           <div className="w-16 h-16 mx-auto mb-3 rounded-2xl bg-surface-container-high border border-outline-variant/60 flex items-center justify-center shadow-inner text-primary">
-            {authMode === "CITIZEN" ? (
+            {authType === "SIGN_UP" ? (
+              <UserPlus className="w-9 h-9 text-primary" />
+            ) : authMode === "CITIZEN" ? (
               <UserCheck className="w-9 h-9 text-emerald-700" />
             ) : (
               <ShieldCheck className="w-9 h-9 text-primary" />
             )}
           </div>
           <h1 className="text-2xl font-bold text-on-surface font-sans">
-            {authMode === "CITIZEN"
+            {authType === "SIGN_UP"
+              ? "Create NLAMS Account"
+              : authMode === "CITIZEN"
               ? "Citizen & Landowner Portal"
               : "Officer Authentication Portal"}
           </h1>
           <p className="text-xs text-emphasis mt-1">
-            {authMode === "CITIZEN"
+            {authType === "SIGN_UP"
+              ? "Sign up for unified land acquisition & statutory compensation management"
+              : authMode === "CITIZEN"
               ? "Verify Land Parcels, Compensation (Sec 26-30), DBT Status & Receipts"
               : "Department of Land Resources (DoLR) • RFCTLARR-2013 Command"}
           </p>
         </div>
 
-        {/* Portal Mode Tab Switcher */}
-        <div className="grid grid-cols-2 gap-2 p-1.5 bg-surface-container-high rounded-2xl mb-5 text-xs font-bold border border-outline-variant/40 shadow-sm">
+        {/* Top-Level Sign In vs Sign Up Tab Switcher */}
+        <div className="flex rounded-2xl bg-surface-container p-1 border border-outline-variant/40 mb-4 shadow-sm">
           <button
             type="button"
             onClick={() => {
-              setAuthMode("CITIZEN");
+              setAuthType("SIGN_IN");
               setErrorMsg(null);
               setSuccessMsg(null);
             }}
-            className={`py-2.5 px-3 rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer ${
-              authMode === "CITIZEN"
-                ? "bg-primary text-white shadow-md font-semibold"
+            className={`flex-1 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer ${
+              authType === "SIGN_IN"
+                ? "bg-surface-container-highest text-on-surface shadow-sm border border-outline-variant/50"
                 : "text-emphasis hover:text-on-surface"
             }`}
           >
-            <User className="w-4 h-4" />
-            <span>Citizen / Landowner Login</span>
+            <LogIn className="w-4 h-4" />
+            <span>Sign In (Login)</span>
           </button>
           <button
             type="button"
             onClick={() => {
-              setAuthMode("OFFICER");
+              setAuthType("SIGN_UP");
               setErrorMsg(null);
               setSuccessMsg(null);
             }}
-            className={`py-2.5 px-3 rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer ${
-              authMode === "OFFICER"
-                ? "bg-primary text-white shadow-md font-semibold"
+            className={`flex-1 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer ${
+              authType === "SIGN_UP"
+                ? "bg-primary text-white shadow-sm font-semibold"
                 : "text-emphasis hover:text-on-surface"
             }`}
           >
-            <ShieldCheck className="w-4 h-4" />
-            <span>Officer Portal (SSO / DSC)</span>
+            <UserPlus className="w-4 h-4" />
+            <span>Sign Up (Create Account)</span>
           </button>
         </div>
 
+        {/* Sign In Mode: Citizen vs Officer Selector */}
+        {authType === "SIGN_IN" && (
+          <div className="grid grid-cols-2 gap-2 p-1 bg-surface-container-high rounded-2xl mb-5 text-xs font-bold border border-outline-variant/40 shadow-sm">
+            <button
+              type="button"
+              onClick={() => {
+                setAuthMode("CITIZEN");
+                setErrorMsg(null);
+                setSuccessMsg(null);
+              }}
+              className={`py-2 px-3 rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer ${
+                authMode === "CITIZEN"
+                  ? "bg-emerald-700 text-white shadow-md font-semibold"
+                  : "text-emphasis hover:text-on-surface"
+              }`}
+            >
+              <User className="w-4 h-4" />
+              <span>Citizen / Landowner</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setAuthMode("OFFICER");
+                setErrorMsg(null);
+                setSuccessMsg(null);
+              }}
+              className={`py-2 px-3 rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer ${
+                authMode === "OFFICER"
+                  ? "bg-primary text-white shadow-md font-semibold"
+                  : "text-emphasis hover:text-on-surface"
+              }`}
+            >
+              <ShieldCheck className="w-4 h-4" />
+              <span>Officer Portal (SSO)</span>
+            </button>
+          </div>
+        )}
         {/* Middleware Access Alert Banner */}
         {authReason === "auth_required" && (
           <div className="mb-4 p-3 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-900 text-xs flex items-center gap-2 font-medium">
@@ -334,8 +440,171 @@ function LoginForm() {
           </div>
         )}
 
+        {/* ===================== SIGN UP VIEW ===================== */}
+        {authType === "SIGN_UP" && (
+          <div className="glass-card rounded-2xl p-6 md:p-8 shadow-xl border border-outline-variant/40">
+            <form onSubmit={handleRegister} className="space-y-4">
+              {/* Full Name */}
+              <div>
+                <label className="block text-xs uppercase text-emphasis mb-1 font-bold">
+                  Full Name / Landowner Name
+                </label>
+                <div className="relative">
+                  <User className="w-4 h-4 text-emphasis absolute left-3 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="text"
+                    required
+                    value={regName}
+                    onChange={(e) => setRegName(e.target.value)}
+                    className="solarized-input w-full pl-9 pr-3 py-2.5 rounded-xl text-xs font-bold font-sans"
+                    placeholder="e.g. Rameshwar Prasad Meena"
+                  />
+                </div>
+              </div>
+
+              {/* Email Address */}
+              <div>
+                <label className="block text-xs uppercase text-emphasis mb-1 font-bold">
+                  Email Address
+                </label>
+                <div className="relative">
+                  <Mail className="w-4 h-4 text-emphasis absolute left-3 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="email"
+                    required
+                    value={regEmail}
+                    onChange={(e) => setRegEmail(e.target.value)}
+                    className="solarized-input w-full pl-9 pr-3 py-2.5 rounded-xl text-xs font-mono font-bold"
+                    placeholder="name@example.com"
+                  />
+                </div>
+              </div>
+
+              {/* Account Role / Designation */}
+              <div>
+                <label className="block text-xs uppercase text-emphasis mb-1 font-bold">
+                  Account Type / Role
+                </label>
+                <div className="grid grid-cols-3 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setRegRole("CITIZEN")}
+                    className={`py-2 px-2 rounded-xl text-xs font-bold transition-all text-center border cursor-pointer ${
+                      regRole === "CITIZEN"
+                        ? "bg-emerald-500/15 border-emerald-500 text-emerald-900 shadow-sm"
+                        : "bg-surface-container-high/60 border-outline-variant/30 text-emphasis hover:bg-surface-container-high"
+                    }`}
+                  >
+                    Citizen / Landowner
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setRegRole("CALA_OFFICER")}
+                    className={`py-2 px-2 rounded-xl text-xs font-bold transition-all text-center border cursor-pointer ${
+                      regRole === "CALA_OFFICER"
+                        ? "bg-primary/15 border-primary text-primary shadow-sm"
+                        : "bg-surface-container-high/60 border-outline-variant/30 text-emphasis hover:bg-surface-container-high"
+                    }`}
+                  >
+                    CALA Officer
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setRegRole("SURVEYOR")}
+                    className={`py-2 px-2 rounded-xl text-xs font-bold transition-all text-center border cursor-pointer ${
+                      regRole === "SURVEYOR"
+                        ? "bg-primary/15 border-primary text-primary shadow-sm"
+                        : "bg-surface-container-high/60 border-outline-variant/30 text-emphasis hover:bg-surface-container-high"
+                    }`}
+                  >
+                    Field Surveyor
+                  </button>
+                </div>
+              </div>
+
+              {/* Mobile Phone (Optional) */}
+              <div>
+                <label className="block text-xs uppercase text-emphasis mb-1 font-bold">
+                  Mobile Number (Optional)
+                </label>
+                <div className="relative">
+                  <Smartphone className="w-4 h-4 text-emphasis absolute left-3 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="tel"
+                    value={regPhone}
+                    onChange={(e) => setRegPhone(e.target.value)}
+                    className="solarized-input w-full pl-9 pr-3 py-2.5 rounded-xl text-xs font-mono font-bold"
+                    placeholder="10-digit mobile number"
+                  />
+                </div>
+              </div>
+
+              {/* Password & Confirm Password */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs uppercase text-emphasis mb-1 font-bold">
+                    Password (min 6 chars)
+                  </label>
+                  <div className="relative">
+                    <KeyRound className="w-4 h-4 text-emphasis absolute left-3 top-1/2 -translate-y-1/2" />
+                    <input
+                      type="password"
+                      required
+                      value={regPassword}
+                      onChange={(e) => setRegPassword(e.target.value)}
+                      className="solarized-input w-full pl-9 pr-3 py-2.5 rounded-xl text-xs font-mono font-bold"
+                      placeholder="••••••••"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs uppercase text-emphasis mb-1 font-bold">
+                    Confirm Password
+                  </label>
+                  <div className="relative">
+                    <Lock className="w-4 h-4 text-emphasis absolute left-3 top-1/2 -translate-y-1/2" />
+                    <input
+                      type="password"
+                      required
+                      value={regConfirmPassword}
+                      onChange={(e) => setRegConfirmPassword(e.target.value)}
+                      className="solarized-input w-full pl-9 pr-3 py-2.5 rounded-xl text-xs font-mono font-bold"
+                      placeholder="••••••••"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Submit Button */}
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full bg-primary hover:bg-primary/90 text-white font-sans font-bold text-xs uppercase tracking-wider py-3 rounded-xl shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer mt-2"
+              >
+                {loading ? (
+                  <RefreshCw className="w-4 h-4 animate-spin" />
+                ) : (
+                  <UserPlus className="w-4 h-4" />
+                )}
+                <span>{loading ? "Creating Encrypted Account..." : "Create Account & Access Portal"}</span>
+              </button>
+
+              <div className="text-center pt-2">
+                <button
+                  type="button"
+                  onClick={() => setAuthType("SIGN_IN")}
+                  className="text-xs text-primary font-bold hover:underline cursor-pointer"
+                >
+                  Already have an account? Sign In here →
+                </button>
+              </div>
+            </form>
+          </div>
+        )}
+
         {/* ===================== CITIZEN LOGIN VIEW ===================== */}
-        {authMode === "CITIZEN" && (
+        {authType === "SIGN_IN" && authMode === "CITIZEN" && (
           <div>
             {/* Quick Citizen Switcher Preset Tabs */}
             <div className="mb-4">
@@ -550,7 +819,7 @@ function LoginForm() {
         )}
 
         {/* ===================== OFFICER LOGIN VIEW ===================== */}
-        {authMode === "OFFICER" && (
+        {authType === "SIGN_IN" && authMode === "OFFICER" && (
           <div>
             {/* Quick Officer Switcher Preset Tabs */}
             <div className="grid grid-cols-3 gap-1 p-1 bg-surface-container-high/70 rounded-xl mb-4 text-xs font-semibold border border-outline-variant/30">
