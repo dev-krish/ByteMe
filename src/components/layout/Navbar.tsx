@@ -15,6 +15,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import { useState, useEffect } from "react";
+import DemoAuthBar from "@/components/layout/DemoAuthBar";
 
 interface AuthUser {
   userId: string;
@@ -97,7 +98,9 @@ export default function Navbar() {
     : publicNavLinks;
 
   return (
-    <header className="sticky top-0 left-0 w-full z-50 bg-[#fdf6e3]/85 backdrop-blur-xl border-b border-outline-variant/40 shadow-sm">
+    <>
+      <DemoAuthBar />
+      <header className="sticky top-0 left-0 w-full z-40 bg-[#fdf6e3]/85 backdrop-blur-xl border-b border-outline-variant/40 shadow-sm">
       <div className="max-w-[1440px] mx-auto px-4 md:px-8 py-3 flex items-center justify-between gap-4">
         {/* Left: Brand & Seal */}
         <div className="flex items-center shrink-0">
@@ -291,5 +294,6 @@ export default function Navbar() {
         </div>
       )}
     </header>
+  </>
   );
 }

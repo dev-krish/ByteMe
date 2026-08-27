@@ -295,6 +295,35 @@ function LoginForm() {
     }
   };
 
+  // 6. Instant 1-Click Demo Authentication Handler
+  const handleInstantDemo = async (presetId: string) => {
+    setLoading(true);
+    setErrorMsg(null);
+    setSuccessMsg(null);
+    try {
+      const res = await fetch("/api/auth/demo", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ presetId }),
+      });
+
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setSuccessMsg(`Authenticated as ${data.user.name}. Redirecting...`);
+        const target = redirectTarget || data.redirectUrl || "/executive-dashboard";
+        setTimeout(() => {
+          router.push(target);
+        }, 500);
+      } else {
+        setErrorMsg(data.error || "Demo authentication failed.");
+        setLoading(false);
+      }
+    } catch {
+      setErrorMsg("Network error connecting to demo authentication service.");
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background text-on-background flex flex-col justify-between p-4 md:p-8 font-sans">
       {/* Top minimal header */}
@@ -338,6 +367,102 @@ function LoginForm() {
               ? "Verify Land Parcels, Compensation (Sec 26-30), DBT Status & Receipts"
               : "Department of Land Resources (DoLR) • RFCTLARR-2013 Command"}
           </p>
+        </div>
+
+        {/* Prominent 1-Click Demo Auth Banner */}
+        <div className="mb-6 p-4 rounded-2xl bg-gradient-to-r from-emerald-950 via-slate-900 to-sky-950 border border-emerald-500/30 text-white shadow-xl">
+          <div className="flex items-center justify-between mb-3 border-b border-white/10 pb-2">
+            <div className="flex items-center gap-2">
+              <Sparkles className="w-4 h-4 text-amber-400 animate-spin" />
+              <span className="font-bold text-xs uppercase tracking-wider text-amber-300 font-mono">
+                1-Click Instant Demo Authentication
+              </span>
+            </div>
+            <span className="text-[10px] font-mono bg-white/10 px-2 py-0.5 rounded text-slate-300">
+              No Passwords Needed
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {/* Demo Citizen Card */}
+            <button
+              type="button"
+              disabled={loading}
+              onClick={() => handleInstantDemo("citizen-rameshwar")}
+              className="p-3 rounded-xl bg-emerald-900/60 hover:bg-emerald-800/80 border border-emerald-500/40 text-left transition-all group cursor-pointer shadow-md hover:scale-[1.02]"
+            >
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-300 font-mono flex items-center gap-1">
+                  <UserCheck className="w-3.5 h-3.5 text-emerald-400" />
+                  Citizen Portal Demo
+                </span>
+                <ArrowRight className="w-3.5 h-3.5 text-emerald-400 group-hover:translate-x-1 transition-transform" />
+              </div>
+              <div className="font-bold text-xs text-white">Rameshwar Prasad Meena</div>
+              <div className="text-[10px] text-emerald-200/80 font-mono mt-0.5">
+                Landowner • Plot 42A Dausa (₹223.44 L Award)
+              </div>
+            </button>
+
+            {/* Demo Officer Card */}
+            <button
+              type="button"
+              disabled={loading}
+              onClick={() => handleInstantDemo("officer-cala")}
+              className="p-3 rounded-xl bg-sky-900/60 hover:bg-sky-800/80 border border-sky-500/40 text-left transition-all group cursor-pointer shadow-md hover:scale-[1.02]"
+            >
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-sky-300 font-mono flex items-center gap-1">
+                  <ShieldCheck className="w-3.5 h-3.5 text-sky-400" />
+                  Officer Portal Demo
+                </span>
+                <ArrowRight className="w-3.5 h-3.5 text-sky-400 group-hover:translate-x-1 transition-transform" />
+              </div>
+              <div className="font-bold text-xs text-white">Rajeshwar Sharma, IAS</div>
+              <div className="text-[10px] text-sky-200/80 font-mono mt-0.5">
+                Competent Authority (CALA Dausa Desk)
+              </div>
+            </button>
+          </div>
+
+          {/* Quick Officer Role Switcher Pills */}
+          <div className="mt-3 pt-2 border-t border-white/10 flex items-center justify-between flex-wrap gap-1.5 text-[10px] font-mono">
+            <span className="text-slate-400">Other Demo Roles:</span>
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <button
+                type="button"
+                disabled={loading}
+                onClick={() => handleInstantDemo("officer-dg")}
+                className="px-2 py-0.5 rounded bg-purple-900/70 hover:bg-purple-800 text-purple-200 border border-purple-500/30 cursor-pointer"
+              >
+                NHAI DG
+              </button>
+              <button
+                type="button"
+                disabled={loading}
+                onClick={() => handleInstantDemo("officer-dolr")}
+                className="px-2 py-0.5 rounded bg-blue-900/70 hover:bg-blue-800 text-blue-200 border border-blue-500/30 cursor-pointer"
+              >
+                DoLR Lead
+              </button>
+              <button
+                type="button"
+                disabled={loading}
+                onClick={() => handleInstantDemo("officer-finance")}
+                className="px-2 py-0.5 rounded bg-amber-900/70 hover:bg-amber-800 text-amber-200 border border-amber-500/30 cursor-pointer"
+              >
+                Finance Officer
+              </button>
+              <button
+                type="button"
+                disabled={loading}
+                onClick={() => handleInstantDemo("officer-surveyor")}
+                className="px-2 py-0.5 rounded bg-teal-900/70 hover:bg-teal-800 text-teal-200 border border-teal-500/30 cursor-pointer"
+              >
+                Surveyor
+              </button>
+            </div>
+          </div>
         </div>
 
         {/* Top-Level Sign In vs Sign Up Tab Switcher */}
