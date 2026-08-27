@@ -16,59 +16,21 @@ import type {
 
 const OTP_CACHE = new Map<string, { otp: string; expiresAt: number }>();
 
-import { sendVerificationEmail } from "./email.service.js";
-
 /**
- * Mask email address for privacy in verification notices (e.g., r***@domain.com)
+ * Dispatch simulated OTP for Aadhaar or Mobile number
  */
-function maskEmail(email: string): string {
-  const [user, domain] = email.split("@");
-  if (!user || !domain) return email;
-  const maskedUser = user.length > 2 ? `${user[0]}•••${user.slice(-1)}` : `${user[0]}•`;
-  return `${maskedUser}@${domain}`;
-}
-
-/**
- * Dispatch OTP for Aadhaar, Mobile, or Registered Email
- */
-export async function sendOtp(
-  identifier: string,
-  channel: "AADHAAR" | "EMAIL" = identifier.includes("@") ? "EMAIL" : "AADHAAR",
-  recipientName?: string
-): Promise<{
-  success: boolean;
-  message: string;
-  demoOtp: string;
-  channel: "AADHAAR" | "EMAIL";
-  emailSent?: boolean;
-}> {
-  const clean = identifier.replace(/[\s-]/g, "").toLowerCase();
-  
-  // Generate a random 6-digit OTP code (master demo OTP 123456 also remains supported for demo convenience)
-  const dynamicOtp = Math.floor(100000 + Math.random() * 900000).toString();
-  
+export function sendOtp(identifier: string): { success: boolean; message: string; demoOtp: string } {
+  const clean = identifier.replace(/[\s-]/g, "");
+  const demoOtp = "123456";
   OTP_CACHE.set(clean, {
-    otp: dynamicOtp,
+    otp: demoOtp,
     expiresAt: Date.now() + 5 * 60 * 1000,
   });
 
-  let emailSent = false;
-  if (channel === "EMAIL") {
-    const result = await sendVerificationEmail(identifier, dynamicOtp, recipientName || "Landowner Citizen");
-    emailSent = result.sent;
-  }
-
-  const message =
-    channel === "EMAIL"
-      ? `Verification code dispatched to registered email ${maskEmail(identifier)}`
-      : `UIDAI Aadhaar OTP dispatched to linked mobile ending in ••••${clean.slice(-4)}`;
-
   return {
     success: true,
-    message,
-    demoOtp: dynamicOtp,
-    channel,
-    emailSent,
+    message: `UIDAI Aadhaar OTP dispatched to linked mobile ending in ••••${clean.slice(-4)}`,
+    demoOtp,
   };
 }
 
@@ -76,7 +38,7 @@ export async function sendOtp(
  * Verify OTP
  */
 export function verifyOtp(identifier: string, otp: string): boolean {
-  const clean = identifier.replace(/[\s-]/g, "").toLowerCase();
+  const clean = identifier.replace(/[\s-]/g, "");
   if (otp === "123456") return true;
 
   const stored = OTP_CACHE.get(clean);
@@ -88,19 +50,14 @@ export function verifyOtp(identifier: string, otp: string): boolean {
 }
 
 /**
- * Citizen Login via Aadhaar / Mobile number / Email
+ * Citizen Login via Aadhaar / Mobile number
  */
 export async function loginCitizen(input: CitizenLoginRequest): Promise<LoginResponse> {
-  const cleanId = input.identifier.replace(/[\s-]/g, "").toLowerCase();
-  const channel = input.verificationChannel || (input.identifier.includes("@") ? "EMAIL" : "AADHAAR");
+  const cleanId = input.identifier.replace(/[\s-]/g, "");
 
   // If OTP provided, verify it
   if (input.otp && !verifyOtp(cleanId, input.otp)) {
-    const errorMsg =
-      channel === "EMAIL"
-        ? "Invalid or expired Email verification code. Use demo OTP: 123456."
-        : "Invalid or expired UIDAI Aadhaar OTP. Use demo OTP: 123456.";
-    throw new Error(errorMsg);
+    throw new Error("Invalid or expired UIDAI Aadhaar OTP. Use demo OTP: 123456.");
   }
 
   // Look for existing citizen user or find citizen with matching email/name
